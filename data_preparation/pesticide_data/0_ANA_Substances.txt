@@ -1,0 +1,145 @@
+subKgM	subDeu	CAS
+2_4_D	2,4-D	94757
+acetamiprid	Acetamiprid	135410207
+aclonifen	Aclonifen	74070465
+alpha-cypermethrin	alpha-Cypermethrin	67375308
+aminobifenox_acid	Aminobifenox-Säure	NA
+atrazin	Atrazin	1912249
+azoxystrobin	Azoxystrobin	131860338
+azoxystrobin_acid	Azoxystrobin-Säure	1185255097
+bentazon	Bentazon	25057890
+benzotriazol	Benzotriazol	95147
+beta_cyfluthrin	beta-Cyfluthrin	1820573270
+beta_cypermethrin	beta-Cypermethrin	65731842
+bifenox	Bifenox	42576023
+bifenox_free_acid	Bifenox (freie Säure)	53774075
+bifenthrin	Bifenthrin	82657043
+bixafen	Bixafen	581809463
+boscalid	Boscalid	188425856
+bromoxynil	Bromoxynil	1689845
+captan_THPAM	Captan THPAM	133062
+captan_THPI	Captan THPI	NA
+carbamazepin	Carbamazepin	298464
+chlorantraniliprole	Chlorantraniliprole	500008457
+chloridazon	Chloridazon	1698608
+chloridazon_desphenyl	Chloridazon-desphenyl	6339191
+chloridazon_methyl_desphenyl	Chloridazon-methyl-desphenyl	17254807
+chlorothalonil	Chlorothalonil	1897456
+chlorothalonil_R471811	Chlorothalonil_MTB_R471811	NA
+chlortoluron	Chlortoluron	15545489
+clothianidin	Chlorthianidin	210880925
+coffein	Coffein	58082
+cyazofamid	Cyazofamid	120116883
+cyfluthrin	Cyfluthrin	68359375
+cypronidil	Cypronidil	121552612
+deltamethrin	Deltamethrin	52918635
+desaminometamitron	Desaminometamitron	36993949
+desmethylchlortoluron	Desmethylchlortoluron	NA
+dichlorprop_P	Dichlorprop-P	15165670
+diclofenac	Diclofenac	15307865
+difenoconazol	Difenoconazol	119446683
+diflufenican	Diflufenican	83164334
+dimethachlor	Dimethachlor	50563365
+dimethachlor_CGA_354742	Dimethachlor CGA 354742	NA
+dimethachlor_CGA_369873	Dimethachlor CGA 369873	NA
+dimethenamid_P	Dimethenamid-P	163515148
+dimethenamid_P_M23	Dimethenamid-P M23	380412599
+dimethenamid_P_M27	Dimethenamid-P M27	NA
+dimethoat	Dimethoat	60515
+dimethomorph	Dimethomorph	110488705
+dimoxystrobin	Dimoxystrobin	149961524
+epoxiconazol	Epoxiconazol	133855988
+esfenvalerat	Esfenvalerat	66230044
+ethofumesat	Ethofumesat	26225796
+etofenprox	Etofenprox	80844071
+famoxadon	Famoxadon	131807573
+fenpropidin	Fenpropidin	67306007
+fenpropimorph	Fenpropimorph	67564914
+fenvalerat	Fenvalerat	51630581
+fipronil	Fipronil	120068373
+florasulam	Florasulam	145701231
+fluazinam	Fluazinam	79622596
+fludioxonil	Fludioxonil	131341861
+flufenacet	Flufenacet	142459583
+flufenacet_ESA	Flufenacet ESA	NA
+flufenacet_thiadone_AE_1258593	Flufenacet Thiadone (AE 1258593)	NA
+flumioxazin	Flumioxazin	103361097
+flumioxazin_MTB_APF	Flumioxazin MTB APF	NA
+fluroxypyr	Fluroxypyr	69377817
+fluroxypyr_acid	Fluroxypyr.Säure	NA
+flurtamon	Flurtamon	96525234
+fluxapyroxad	Fluxapyroxad	907204313
+foramsulfuron	Foramsulfuron	173159574
+imidacloprid	Imidacloprid	138261413
+iodosulfuron	Iodosulfuron	185119760
+iodosulfuron_methyl	Iodosulfuron-methyl	144550367
+isoproturon	Isoproturon	34123596
+isopyrazam	Isopyrazam	881685581
+kresoxim_methyl	Kresoxim-methyl	143390890
+lambda_cyhalothrin	lambda-Cyhalothrin	91465086
+lenacil	Lenacil	2164081
+MCPA	MCPA	94746
+mecoprop_P	Mecoprop-P	16484778
+mesostrion	Mesostrion	104206828
+metamitron	Metamitron	41394052
+metazachlor	Metazachlor	67129082
+metazachlor_BH_479_11	Metazachlor BH 479-11	NA
+metazachlor_BH_479_12	Metazachlor BH 479-12	NA
+metazachlor_BH_479_9	Metazachlor BH 479-9	NA
+metazachlor_ESA	Metazachlor ESA	172960622
+methiocarb	Methiocarb	2032657
+methiocarb_sulfoxid	Methiocarb Sulfoxid	13058
+metolachlor_CGA_357704	Metolachlor CGA 357704	1217465105
+metolachlor_CGA_368208	Metolachlor CGA 368208	1173021765
+metolachlor_ESA	Metolachlor ESA	51218452
+metolachlor_NOA_413173	Metolachlor NOA 413173	NA
+metolachlor_OA	Metolachlor OA	152019733
+metrafenon	Metrafenon	220899036
+metribuzin	Metribuzin	21087649
+napropamid	Napropamid	15299997
+nicosulfuron	Nicosulfuron	111991094
+pendimethalin	Pendimethalin	40487421
+permethrin	Permethrin	52645531
+pethoxamid	Pethoxamid	106700292
+phenmedipham	Phenmedipham	13684634
+picolinafen	Picolinafen	137641055
+picoxystrobin	Picoxystrobin	117428225
+pirimicarb	Pirimicarb	23103982
+prochloraz	Prochloraz	67747095
+prometryn	Prometryn	7287196
+propamocarb	Propamocarb	24579735
+propiconazol	Propiconazol	60207901
+propyzamid	Propyzamid	23950585
+proquinazid	Proquinazid	189278124
+prosulfocarb	Prosulfocarb	52888809
+prosulfuron	Prosulfuron	94125345
+prothioconazol	Prothioconazol	178928706
+prothioconazol_desthio_AE_1194888	Prothioconazol-desthio (AE 1194888)	120983644
+pyraclostrobin	Pyraclostrobin	175013180
+pyrethrin I	Pyrethrin I	121211
+pyroxsulam	Pyroxsulam	422556089
+quinmerac	Quinmerac	90717036
+quinmerac_BH_518_2	Quinmerac BH 518-2	NA
+quinoxyfen	Quinoxyfen	124495187
+quizalofop_free_acid	Quizalofop (free acid)	76578126
+s_metolachlor	S-Metolachlor	87392129
+spinosad	Spinosad	168316958
+spinosad_A	Spinosad A	131929630
+spinosad_D	Spinosad D	131929607
+spiroxamin	Spiroxamin	118134308
+sulcotrion	Sulcotrion	99105778
+tau_fluvalinat	tau-Fluvalinat	102851069
+tebuconazol	Tebuconazol	107534963
+tefluthrin	Tefluthrin	79538322
+terbuthylazin	Terbuthylazin	5915413
+terbuthylazin_desethyl_2_hydroxy	Terbuthylazin-desethyl-2-hydroxy	66753068
+thiacloprid	Thiacloprid	111988499
+thiacloprid_amid	Thiacloprid-Amid	676228914
+thiamethoxam	Thiamethoxam	153719234
+topramezon	Topramezon	210631688
+triadimenol	Triadimenol	55219653
+trifloxistrobin_CGA_321113	Trifloxistrobin CGA 321113	252913852 
+trifloxstrobin	Trifloxstrobin	141517217
+tritosulfuron	Tritosulfuron	142469145
+tritosulfuron_BH_635_2	Tritosulfuron BH 635-2	1869245
+zeta_cypermethrin	zeta-Cypermethrin	97955447
