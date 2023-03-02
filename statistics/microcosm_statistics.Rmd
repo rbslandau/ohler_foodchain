@@ -1,0 +1,3889 @@
+---
+title: "Trophic transfer of polyunsaturated fatty acids across the aquatic-terrestrial interface: an experimental tritrophic food chain approach: Statistics"
+output:
+  html_document:
+    figure_caption: yes
+    highlight: tango
+    number_sections: yes
+    toc: yes
+    toc_depth: 4
+  pdf_document:
+    toc: yes
+    toc_depth: '4'
+  word_document:
+    toc: yes
+editor_options:
+  chunk_output_type: console
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(tidy.opts=list(width.cutoff=80), tidy=TRUE)
+```
+
+# Required packages
+```{r, message=FALSE, warning=FALSE}
+library(data.table) # Data wrangling
+library(dplyr) # Data wrangling
+library(tidyr) # Data wrangling
+library(tidylog, warn.conflicts = FALSE) # Data wrangling
+library(plyr) # Data wrangling
+
+library(ggplot2) # plots
+library(ggpubr) # plots
+library(ggrepel) # plots
+
+library(smatr) # standardized major axis regression
+
+library(vegan) # NMDS, ANOSIM
+
+library(glmmTMB) # LMM
+library(DAAG) # Model diagnostics
+
+library(effects) # plot interactions
+
+library(car) # type II ANOVA
+
+library(sjPlot) # Get summary table of LMM and LM
+library(texreg) # export model output to html or latex
+
+library(lubridate) # handle date and time data
+```
+
+# Set path
+```{r, message=FALSE, warning=FALSE}
+path <-"/Users/katharinafrisch/Nextcloud/Uni/Paper/Microcosm Paper/Submission/Ecology_and_Evolution_submission/2_second_submission/ohler_microcosm/statistics"
+setwd(path)
+```
+
+# Load data
+```{r, message=FALSE, warning=FALSE}
+spider_treatment <- read.table("/Users/katharinafrisch/Nextcloud/Uni/Paper/Microcosm Paper/Submission/Ecology_and_Evolution_submission/2_second_submission/ohler_microcosm/statistics/response_spiders/spider_to_treatment_3.csv", 
+                               header = TRUE, 
+                               sep = ",",na.strings = c("NR", "NA"), 
+                               stringsAsFactors = FALSE, strip.white = TRUE) 
+
+microcosm <- read.table("/Users/katharinafrisch/Nextcloud/Uni/Paper/Microcosm Paper/Submission/Ecology_and_Evolution_submission/2_second_submission/ohler_microcosm/statistics/PUFA_data/microcosm_pufa.csv", header = TRUE, 
+                       sep = ",", na.strings = c("NR", "NA"), 
+                       stringsAsFactors = FALSE, strip.white = TRUE) 
+
+encapsulation <- read.table("/Users/katharinafrisch/Nextcloud/Uni/Paper/Microcosm Paper/Submission/Ecology_and_Evolution_submission/2_second_submission/ohler_microcosm/statistics/response_spiders/encapsulation_assay_measurements_6.csv", header = TRUE, 
+                            sep = ",",na.strings = c("NR", "NA"), 
+                            stringsAsFactors = FALSE, strip.white = TRUE) 
+
+encapsulation_form <- read.table("/Users/katharinafrisch/Nextcloud/Uni/Paper/Microcosm Paper/Submission/Ecology_and_Evolution_submission/2_second_submission/ohler_microcosm/statistics/response_spiders/encapsulation_assay_form_sheet_2.csv", header = TRUE,
+                                 sep = ",",na.strings = c("NR", "NA"),
+                                 stringsAsFactors = FALSE, strip.white = TRUE) 
+
+condition <- read.table("/Users/katharinafrisch/Nextcloud/Uni/Paper/Microcosm Paper/Submission/Ecology_and_Evolution_submission/2_second_submission/ohler_microcosm/statistics/response_spiders/fitness_spiders_5.csv", header = TRUE, 
+                        sep = ",",na.strings = c("NR", "NA"), 
+                        stringsAsFactors = FALSE, strip.white = TRUE) 
+
+growth <- read.table("/Users/katharinafrisch/Nextcloud/Uni/Paper/Microcosm Paper/Submission/Ecology_and_Evolution_submission/2_second_submission/ohler_microcosm/statistics/response_spiders/growth_spiders_190722_5.csv", header = TRUE, 
+                     sep = ",",na.strings = c("NR", "NA"), 
+                     stringsAsFactors = FALSE, strip.white = TRUE) 
+```
+
+# Prepare data for merging
+## Encapsulation data
+
+Merge data tables of encapsulation assay
+```{r, message=FALSE, warning=FALSE}
+encapsulation <- full_join(encapsulation, encapsulation_form, 
+                       by = c("Organism", "treatment", "experiment", 
+                              "experiment_ID", "spider_ID",
+                              "spider_ID_experiment_ID"))
+```
+
+Calculate area of not encapsulated monofilament 
+
+$$ monofilament_{area} = A_{not \  encapsulated} = length \cdot width $$
+```{r, message=FALSE, warning=FALSE}
+encapsulation$area_monofilament <- with(encapsulation, length_mm*width_mm)
+```
+
+Calculate Ratio of encapsulated area and area of not encapsulated monofilament 
+
+$$ R_{e/ne} = {A_{encapsulated}  \over A_{not \ encapsulated}}$$
+```{r, message=FALSE, warning=FALSE}
+encapsulation$R_e_ne <- with(encapsulation, encapsulated_area_mm_2/area_monofilament)
+```
+
+Calculate area of encapsulation
+
+$$ A_{encapsulation} = {A_{encapsulated}  - A_{not \ encapsulated}}$$
+```{r, message=FALSE, warning=FALSE}
+encapsulation$area_encapsulation <- with(encapsulation,
+                                         encapsulated_area_mm_2-area_monofilament)
+```
+
+If area encapsulation < 0: Set area encapsulated = 0, because there cannot be a negative area encapsulation
+```{r, message=FALSE, warning=FALSE}
+encapsulation$area_encapsulation <- with(encapsulation, ifelse(area_encapsulation > 0, area_encapsulation, 0))
+```
+
+For statistics: Calculate mean of measurements per treatment and date 
+```{r, message=FALSE, warning=FALSE}
+encapsulation_stat <- ddply(encapsulation, c("Organism", "treatment", "experiment", 
+                            "experiment_ID","spider_ID", "spider_ID_experiment_ID",
+                            "start_encapsulation"),
+                            summarise, 
+                            mean_R_e_ne = mean(R_e_ne),
+                            mean_area_encapsulation = mean(area_encapsulation))
+```
+
+Remove test spiders
+```{r, message=FALSE, warning=FALSE}
+encapsulation_stat <- filter(encapsulation_stat, experiment != "")
+```
+
+Check NAs
+```{r, message=FALSE, warning=FALSE}
+filter(encapsulation_stat, is.na(mean_R_e_ne))
+filter(encapsulation_stat, is.na(mean_area_encapsulation))
+```
+
+NAs right, because monofilament not found after 24 h encapsulation
+
+Rename start encapsulation
+```{r, message=FALSE, warning=FALSE}
+names(encapsulation_stat)[7] <- "date_endpoint"
+```
+
+date in date format
+```{r, message=FALSE, warning=FALSE}
+encapsulation_stat$date_endpoint <- as.Date(encapsulation_stat$date_endpoint,
+                                   "%d.%m.%Y")
+```
+
+## Growth data
+
+Get variables for statistics
+```{r, message=FALSE, warning=FALSE}
+growth_stat <- select(growth, c("date", "Organism", "experiment",
+                            "experiment_ID", "spider_ID", "treatment",
+                            "weight_spider_g"))
+```
+
+Correct date for the following spiders:
+* 22.05.2019 fishfood_2 95: died at 14.05.2019, frozen since death and weighed at 22.05.2019
+* 22.05.2019 fishfood_13 121: died at 14.05.2019, frozen since death and weighed at 22.05.2019
+* 22.05.2019 fishfood_16 108: died at 17.05.2019, frozen since death and weighed at 22.05.2019
+* 22.05.2019 algae_4 88: died at 03.05.2019, frozen since death and weighed at 22.05.2019
+* 22.05.2019 algae_19 105: died at 07.05.2019, frozen since death and weighed at 22.05.2019
+
+```{r, message=FALSE, warning=FALSE}
+growth_stat$date[growth_stat$experiment_ID == "fishfood_2" &
+                   growth_stat$date == "22.05.2019"]  <- "14.05.2019"
+growth_stat$date[growth_stat$experiment_ID == "fishfood_13" 
+                 & growth_stat$date == "22.05.2019"]  <- "14.05.2019"  
+growth_stat$date[growth_stat$experiment_ID == "fishfood_16" 
+                 & growth_stat$date == "22.05.2019"]  <- "17.05.2019"  
+growth_stat$date[growth_stat$spider_ID == "88" 
+                 & growth_stat$date == "22.05.2019"]  <- "03.05.2019"  
+growth_stat$date[growth_stat$spider_ID == "105" 
+                 & growth_stat$date == "22.05.2019"]  <- "07.05.2019" 
+```
+
+Remove weight of spiders, that were weighed 2 times:
+* 22.05.2019 oatmeal_15 99: died at 15.05.2019 and also weighed there, but frozen since death and weighed again at 22.05.2019, so not use weight from 22.05.2019
+* 22.05.2019 algae_18: died at 08.05.2019, and also weighed there, but frozen since death and weighed again at 22.05.2019, so not use weight from 22.05.2019
+
+* 15.07.2019 oatmeal_6 167: weighed one time before and one time after feeding. So not use weight after feeding: 0.0194
+```{r, message=FALSE, warning=FALSE}
+growth_stat <- filter(growth_stat, experiment_ID != "algae_18" |
+                        date != "22.05.2019")
+
+growth_stat <- filter(growth_stat, experiment_ID != "oatmeal_15" |
+                        date != "22.05.2019")
+
+growth_stat <- filter(growth_stat, experiment_ID != "oatmeal_6" |
+                        weight_spider_g != "0.0194")
+
+```
+
+date in date format
+```{r, message=FALSE, warning=FALSE}
+growth_stat$date <- as.Date(growth_stat$date, "%d.%m.%Y")
+names(growth_stat)[1] <- "date_endpoint"
+```
+
+Remove "leaves" spiders from M1: Treatment was ended, because not enough leaves chiros to feed spiders
+```{r, message=FALSE, warning=FALSE}
+growth_stat <- filter(growth_stat, experiment != "M1" | treatment != "leaves")
+```
+
+## Condition data
+
+Remove 15.07.2019 oatmeal_6 167: picture one time before and one time after feeding. So not use picture after feeding
+```{r, message=FALSE, warning=FALSE}
+condition <- filter(condition, comment != "foto nach fütterung")
+```
+
+Calculate body condition
+
+$$ body\ condition = { prosoma\  width \over opisthosoma\  width} = { thorax\  width \over abdomen\  width} $$
+```{r, message=FALSE, warning=FALSE}
+condition$body_cond <- with(condition, prosoma_width_cm/opisthosoma_width_cm)
+```
+
+Choose variables for statistics
+```{r, message=FALSE, warning=FALSE}
+condition_stat <- select(condition, -c("picture_ID", "prosoma_length_cm", "opisthosoma_length_cm", "comment"))
+```
+
+Correct date for the following spiders:
+* 22.05.2019 fishfood_2 95: died at 14.05.2019, frozen since death and picture at 22.05.2019
+* 22.05.2019 fishfood_13 121: died at 14.05.2019, frozen since death and picture at 22.05.2019
+* 22.05.2019 fishfood_16 108: died at 17.05.2019, frozen since death and picture at 22.05.2019
+* 22.05.2019 algae_4 88: died at 03.05.2019, frozen since death and weighed at 22.05.2019
+
+* 26.07.2019 oatmeal_13	189: in encapsulation assay at 22.07.2019, but picture taken on 26.07.2019 	
+
+```{r, message=FALSE, warning=FALSE}
+condition_stat$date[condition_stat$experiment_ID == "fishfood_2" &
+                   condition_stat$date == "22.05.2019"]  <- "14.05.2019"
+condition_stat$date[condition_stat$experiment_ID == "fishfood_13" 
+                 & condition_stat$date == "22.05.2019"]  <- "14.05.2019"  
+condition_stat$date[condition_stat$experiment_ID == "fishfood_16" 
+                 & condition_stat$date == "22.05.2019"]  <- "17.05.2019" 
+condition_stat$date[condition_stat$spider_ID == "88" 
+                 & condition_stat$date == "22.05.2019"]  <- "03.05.2019"
+
+condition_stat$date[condition_stat$experiment_ID == "oatmeal_13" 
+                 & condition_stat$date == "26.07.2019"]  <- "22.07.2019" 
+```
+
+Remove spiders with 2 measurements:
+
+* 22.05.2019 spider algae M1 algae_18 92: spider died at 08.05.2019, and also picture taken there, but frozen since death and picture again at 22.05.2019, so not use picture from 22.05.2019
+* 22.05.2019 oatmeal_15 99: died at 15.05.2019 and also picture there, but frozen since death and picture again at 22.05.2019, so not use picture from 22.05.2019
+```{r, message=FALSE, warning=FALSE}
+condition_stat <- filter(condition_stat, experiment_ID != "algae_18" |
+                        date != "22.05.2019")
+
+condition_stat <- filter(condition_stat, experiment_ID != "oatmeal_15" |
+                        date != "22.05.2019")
+```
+
+date in date format
+```{r, message=FALSE, warning=FALSE}
+condition_stat$date <- as.Date(condition_stat$date, "%d.%m.%Y")
+names(condition_stat)[6] <- "date_endpoint"
+```
+
+Remove "leaves" spiders from M1: Treatment was ended, because not enough leaves chiros to feed spiders
+```{r, message=FALSE, warning=FALSE}
+condition_stat <- filter(condition_stat, experiment != "M1" | treatment != "leaves")
+```
+
+## Assign spider to treatment
+
+* deadly endpoints: dry weight, encapsulation and PUFA content
+* weekly endpoints: fresh weight, condition
+
+microcosm 1
+* t0: 29.04.2019: deadly endpoints and weekly endpoints (only fresh weight and condition)
+* t2: 08.05.2019: only weekly endpoints 1
+* t3: 15.05.2019: only weekly endpoints 1
+* t4: 22.05.2019: deadly endpoints and weekly endpoints
+* t5: 29.05.2019: only weekly endpoints 1
+* t6: 05.06.2019: only weekly endpoints 1
+* t7: 12.06.2019: deadly endpoints and weekly endpoints
+
+* ta: 03.05.2019: start for replacement spiders
+* tb: 07.05.2019: start for replacement spiders
+* tc: 07.06.2019: algae_15 33: spider died, so no official endpoint date
+* td: 14.05.2019: fishfood_2, fishfood_13: spider died, so no official endpoint date
+* te: 17.05.2019: fishfood_16 108: spider died, so no official endpoint date
+
+microcosm 2
+* t0: 08.07.2019: deadly endpoints and weekly endpoints (only fresh weight and condition)
+* t1: 15.07.2019: only weekly endpoints 1
+* t2: 22.07.2019: deadly endpoints and weekly endpoints
+* t3: 29.07.2019: deadly endpoints and weekly endpoints
+
+* ta: 26.07.2019: oatmeal_2, oatmeal_11, oatmeal_15, fishfood_4, fishfood_12, fishfood_19, leaves_20, leaves_6: spiders died, so no official endpoint date
+* tb 19.07.2019: leaves_2: spider died, so no official endpoint date 
+
+Split for M1 and M2
+```{r, message=FALSE, warning=FALSE}
+spider_treatment_M1 <- filter(spider_treatment, experiment == "M1")
+spider_treatment_M2 <- filter(spider_treatment, experiment == "M2")
+```
+
+Add date of endpoints 
+```{r, message=FALSE, warning=FALSE}
+spider_treatment_M1$t0 <- "29.04.2019"
+spider_treatment_M1$t2 <- "08.05.2019"
+spider_treatment_M1$t3 <- "15.05.2019"
+spider_treatment_M1$t4 <- "22.05.2019"
+spider_treatment_M1$t5 <- "29.05.2019"
+spider_treatment_M1$t6 <- "05.06.2019"
+spider_treatment_M1$t7 <- "12.06.2019"
+
+spider_treatment_M1$ta <- "03.05.2019"
+spider_treatment_M1$tb <- "07.05.2019"
+spider_treatment_M1$tc <- "07.06.2019"
+spider_treatment_M1$td <- "14.05.2019"
+spider_treatment_M1$te <- "17.05.2019"
+
+spider_treatment_M2$t0 <- "08.07.2019"
+spider_treatment_M2$t1 <- "15.07.2019"
+spider_treatment_M2$t2 <- "22.07.2019"
+spider_treatment_M2$t3 <- "29.07.2019"
+
+spider_treatment_M2$ta <- "26.07.2019"
+spider_treatment_M2$tb <- "19.07.2019"
+```
+
+Put date of endpoints in long format
+```{r, message=FALSE, warning=FALSE}
+spider_treatment_M1 <- reshape2::melt(spider_treatment_M1, id.vars = c("Organism", "treatment", "experiment", "experiment_ID", "original_spider_ID", "replace_spider_1", "date_replacement_1", "replace_spider_2", "date_replacement_2", "date_treatment_ended", "dead_not_found_encapsulation", "comment"), value.name = c("date_endpoint"), variable.name = c("time_point"))
+
+spider_treatment_M2 <- reshape2::melt(spider_treatment_M2, id.vars = c("Organism", "treatment", "experiment", "experiment_ID", "original_spider_ID", "replace_spider_1", "date_replacement_1", "replace_spider_2", "date_replacement_2", "date_treatment_ended", "dead_not_found_encapsulation", "comment"), value.name = c("date_endpoint"), variable.name = c("time_point"))
+```
+
+Dates in date format
+```{r, message=FALSE, warning=FALSE}
+spider_treatment_M1$date_replacement_1 <- as.Date(spider_treatment_M1$date_replacement_1, "%d.%m.%Y")
+spider_treatment_M1$date_replacement_2 <- as.Date(spider_treatment_M1$date_replacement_2, "%d.%m.%Y")
+spider_treatment_M1$date_treatment_ended <- as.Date(spider_treatment_M1$date_treatment_ended, "%d.%m.%Y")
+spider_treatment_M1$date_endpoint <- as.Date(spider_treatment_M1$date_endpoint, "%d.%m.%Y")
+
+spider_treatment_M2$date_replacement_1 <- as.Date(spider_treatment_M2$date_replacement_1, "%d.%m.%Y")
+spider_treatment_M2$date_replacement_2 <- as.Date(spider_treatment_M2$date_replacement_2, "%d.%m.%Y")
+spider_treatment_M2$date_treatment_ended <- as.Date(spider_treatment_M2$date_treatment_ended, "%d.%m.%Y")
+spider_treatment_M2$date_endpoint <- as.Date(spider_treatment_M2$date_endpoint, "%d.%m.%Y")
+```
+
+Remove dates after treatment ended
+```{r, message=FALSE, warning=FALSE}
+spider_treatment_M1$remove <- with(spider_treatment_M1, ifelse(date_treatment_ended < date_endpoint, "y", "n"))
+spider_treatment_M1 <- filter(spider_treatment_M1, remove == "n")
+
+spider_treatment_M2$remove <- with(spider_treatment_M2, ifelse(date_treatment_ended < date_endpoint, "y", "n"))
+spider_treatment_M2 <- filter(spider_treatment_M2, remove == "n")
+```
+
+Get replacement spiders
+```{r, message=FALSE, warning=FALSE}
+replace_spider_M1 <- filter(spider_treatment_M1, !is.na(replace_spider_1))
+
+replace_spider_1_M2 <- filter(spider_treatment_M2, !is.na(replace_spider_1))
+replace_spider_2_M2 <- filter(spider_treatment_M2, !is.na(replace_spider_2))
+```
+
+Add column spider_ID
+```{r, message=FALSE, warning=FALSE}
+spider_treatment_M1$spider_ID <- spider_treatment_M1$original_spider_ID
+spider_treatment_M2$spider_ID <- spider_treatment_M2$original_spider_ID
+
+replace_spider_M1$spider_ID <- replace_spider_M1$replace_spider_1
+
+replace_spider_1_M2$spider_ID <- replace_spider_1_M2$replace_spider_1
+replace_spider_2_M2$spider_ID <- replace_spider_2_M2$replace_spider_2
+```
+
+Add column with information, if it is original, replace 1 or replace 2 spider
+```{r, message=FALSE, warning=FALSE}
+spider_treatment_M1$spider <- "original"
+spider_treatment_M2$spider <- "original"
+
+replace_spider_M1$spider <- "replace_1"
+
+replace_spider_1_M2$spider <- "replace_1"
+replace_spider_2_M2$spider <- "replace_2"
+```
+
+Bind tables together
+```{r, message=FALSE, warning=FALSE}
+spider_treatment_M1 <- rbind(spider_treatment_M1, replace_spider_M1)
+
+spider_treatment_M2 <- rbind(spider_treatment_M2, replace_spider_1_M2, replace_spider_2_M2)
+```
+
+Choose needed columns
+```{r, message=FALSE, warning=FALSE}
+spider_treatment_M1 <- select(spider_treatment_M1, c("Organism", "treatment", "experiment", "experiment_ID", "dead_not_found_encapsulation", "date_endpoint", "spider_ID", "spider", "date_replacement_1", "date_replacement_2", "date_treatment_ended") )
+
+spider_treatment_M2 <- select(spider_treatment_M2, c("Organism", "treatment", "experiment", "experiment_ID", "dead_not_found_encapsulation", "date_endpoint", "spider_ID", "spider", "date_replacement_1", "date_replacement_2", "date_treatment_ended")) 
+```
+On 03.05. and 07.05 some spiders replaced. Remove these dates for all original spiders and keep only replacement spiders:
+
+replacement spiders 03.05.2019:
+M1	oatmeal_5	  123
+M1	oatmeal_1	  126
+M1	fishfood_7	127
+M1	algae_4	    122
+M1	algae_19	  124
+
+replacement spiders 07.05.2019
+M1	oatmeal_5	123
+M1	oatmeal_1	126
+M1	algae_19	124
+```{r, message=FALSE, warning=FALSE}
+`%notin%` <- Negate(`%in%`)
+
+remove <- c(21, 22, 24, 38, 39, 44, 48, 49, 59, 63, 65, 70, 74, 78, 79, 81, 86, 106, 111, 115, 27, 85, 42, 83, 54, 94, 80, 72, 36, 60, 57, 73, 113, 66, 99, 68, 46, 96, 56, 90, 93, 95, 55, 53, 25, 23, 84, 71, 50, 107, 120, 64, 121, 117, 45, 108, 69, 43, 52, 67, 104, 75, 40, 88, 82, 41, 118, 89, 116, 34, 114, 97, 103, 62, 33, 37, 100, 92, 105, 77)
+
+spider_treatment_M1 <- filter(spider_treatment_M1, date_endpoint != "2019-05-03" | spider_ID %notin% remove)
+
+remove <- c(21, 22, 24, 38, 39, 44, 48, 49, 59, 63, 65, 70, 74, 78, 79, 81, 86, 106, 111, 115, 27, 85, 42, 83, 54, 94, 80, 72, 36, 60, 57, 73, 113, 66, 99, 68, 46, 96, 56, 90, 93, 95, 55, 53, 25, 23, 84, 71, 50, 107, 120, 64, 121, 117, 45, 108, 69, 43, 52, 67, 104, 75, 40, 88, 82, 41, 118, 89, 116, 34, 114, 97, 103, 62, 33, 37, 100, 92, 105, 77, 127, 122)
+
+spider_treatment_M1 <- filter(spider_treatment_M1, date_endpoint != "2019-05-07" | spider_ID %notin% remove)
+```
+
+Some spiders found dead not on regular endpoint date. These weighed etc. on one day they were found. So remove these dates from all other spiders.
+
+Spiders died on the 14.05.2019
+M1 fishfood_2   95
+M1 fishfood_13 121
+
+Spiders died on the 17.05.2019
+M1 fishfood_16 108
+
+Spider died on the 07.06.2019
+M1 algae_15 33
+```{r, message=FALSE, warning=FALSE}
+remove <- c(21, 22, 24, 38, 39, 44, 48, 49, 59, 63, 65, 70, 74, 78, 79, 81, 86, 106, 111, 115, 27, 85, 42, 83, 54, 94, 80, 72, 36, 60, 57, 73, 113, 66, 99, 68, 46, 96, 56, 90, 93, 55, 53, 25, 23, 84, 71, 50, 107, 120, 64, 117, 45, 108, 69, 43, 52, 67, 104, 75, 40, 88, 82, 41, 118, 89, 116, 34, 114, 97, 103, 62, 33, 37, 100, 92, 105, 77, 126, 123, 127, 122, 124)
+
+spider_treatment_M1 <- filter(spider_treatment_M1, date_endpoint != "2019-05-14" | spider_ID %notin% remove)
+
+remove <- c(21, 22, 24, 38, 39, 44, 48, 49, 59, 63, 65, 70, 74, 78, 79, 81, 86, 106, 111, 115, 27, 85, 42, 83, 54, 94, 80, 72, 36, 60, 57, 73, 113, 66, 99, 68, 46, 96, 56, 90, 93, 95, 55, 53, 25, 23, 84, 71, 50, 107, 120, 64, 121, 117, 45, 69, 43, 52, 67, 104, 75, 40, 88, 82, 41, 118, 89, 116, 34, 114, 97, 103, 62, 33, 37, 100, 92, 105, 77, 126, 123, 127, 122, 124)
+
+spider_treatment_M1 <- filter(spider_treatment_M1, date_endpoint != "2019-05-17" | spider_ID %notin% remove)
+
+remove <- c(21, 22, 24, 38, 39, 44, 48, 49, 59, 63, 65, 70, 74, 78, 79, 81, 86, 106, 111, 115, 27, 85, 42, 83, 54, 94, 80, 72, 36, 60, 57, 73, 113, 66, 99, 68, 46, 96, 56, 90, 93, 95, 55, 53, 25, 23, 84, 71, 50, 107, 120, 64, 121, 117, 45, 108, 69, 43, 52, 67, 104, 75, 40, 88, 82, 41, 118, 89, 116, 34, 114, 97, 103, 62,
+37, 100, 92, 105, 77, 126, 123, 127, 122, 124)
+
+spider_treatment_M1 <- filter(spider_treatment_M1, date_endpoint != "2019-06-07" | spider_ID %notin% remove)
+```
+
+No endpoints could be taken, because spiders were not found or only few legs remained
+05.06.2019
+M1 algae_7 118 (not found)
+M1 algae_15 33 (not found)
+M1 fishfood_9 50 (only few legs remained)
+M1 oatmeal_17 46 (not found)
+
+22.05.2019
+M1 oatmeal_14 66 (not found)
+
+29.05.2019
+M1 oatmeal_13 113 (not found)
+M1 oatmeal_3 42 (not found)
+```{r, message=FALSE, warning=FALSE}
+remove <- c(118, 33, 50, 46)
+
+spider_treatment_M1 <- filter(spider_treatment_M1, date_endpoint != "2019-06-05" | spider_ID %notin% remove)
+
+remove <- c(66)
+
+spider_treatment_M1 <- filter(spider_treatment_M1, date_endpoint != "2019-05-22" | spider_ID %notin% remove)
+
+remove <- c(42, 113)
+
+spider_treatment_M1 <- filter(spider_treatment_M1, date_endpoint != "2019-05-29" | spider_ID %notin% remove)
+```
+
+Some spiders found dead not on regular endpoint date. These weighed and so on on day they were found. So remove these dates from all other spiders.
+
+Spiders died on the 26.07.2019:
+M2	oatmeal_11  	130
+M2	oatmeal_15    134
+M2	oatmeal_2	    218
+M2	leaves_20	    208
+M2	leaves_6	    226
+M2	fishfood_4	  136
+M2	fishfood_12	  166
+M2	fishfood_19	  177
+
+Spiders died on the 19.07.2019:
+M2  leaves_2  197
+
+```{r, message=FALSE, warning=FALSE}
+remove <- c(133, 138, 163, 164, 165, 168, 181, 187, 202, 203, 215, 216, 225, 221, 171, 186, 159, 204, 167, 222, 132, 146, 190, 154, 189, 195, 223, 157, 228, 135, 160, 198, 170, 219, 175, 196, 180, 161, 213, 158, 206, 139, 214, 201, 131, 212, 140, 185, 137, 199, 188, 207, 197, 169, 150, 152, 149, 142, 191, 174, 179, 193, 220, 227, 183, 194, 144, 176, 210, 192, 217, 148, 147, 153, 184, 209, 211, 178, 172, 182, 162)
+
+spider_treatment_M2 <- filter(spider_treatment_M2, date_endpoint != "2019-07-26" | spider_ID %notin% remove)
+
+remove <- c(133, 138, 163, 164, 165, 168, 181, 187, 202, 203, 215, 216, 225, 221, 171, 186, 159, 204, 167, 222, 132, 146, 190, 130, 154, 189, 195, 134, 223, 157, 228, 135, 160, 198, 170, 219, 175, 196, 180, 161, 213, 158, 206, 139, 214, 201, 131, 212, 140, 185, 137, 199, 188, 207, 169, 150, 152, 226, 149, 142, 191, 174, 179, 193, 220, 227, 183, 194, 144, 176, 210, 192, 218, 217, 148, 147, 136, 166, 177, 153, 184, 209, 211, 178, 172, 208, 182, 162)
+
+spider_treatment_M2 <- filter(spider_treatment_M2, date_endpoint != "2019-07-19" | spider_ID %notin% remove)
+```
+
+No endpoints could be taken, because spiders were not found 
+
+29.07.2019
+M2 fishfood_1 148
+M2 fishfood_5 196
+M2 leaves_2 218
+
+15.07.2019
+M2 oatmeal_19 135
+```{r, message=FALSE, warning=FALSE}
+remove <- c(148, 196, 184)
+
+spider_treatment_M2 <- filter(spider_treatment_M2, date_endpoint != "2019-07-29" | spider_ID %notin% remove)
+
+remove <- c(135)
+
+spider_treatment_M2 <- filter(spider_treatment_M2, date_endpoint != "2019-07-15" | spider_ID %notin% remove)
+```
+
+No endpoints taken, because spiders were already dead
+
+29.07.2019
+M2 fishfood_1 198
+M2 leaves_2 197
+```{r, message=FALSE, warning=FALSE}
+remove <- c(198, 197)
+
+spider_treatment_M2 <- filter(spider_treatment_M2, date_endpoint != "2019-07-29" | spider_ID %notin% remove)
+```
+
+No endpoint taken
+
+15.07.2019
+M2 oatmeal_19 217
+```{r, message=FALSE, warning=FALSE}
+remove <- c(217)
+
+spider_treatment_M2 <- filter(spider_treatment_M2, date_endpoint != "2019-07-15" | spider_ID %notin% remove)
+```
+
+## PUFA and dry weight data
+
+* dry_pufa: Weight PUFA per dry weight of organism (microgramm PUFA per milligram dry mass)
+
+Correct oatmealmeal_17
+```{r, message=FALSE, warning=FALSE}
+microcosm$experiment_ID <- gsub("oatmealmeal_17", "oatmeal_17", microcosm$experiment_ID)
+```
+
+Chose PUFA (= FA with more than one double bound)
+```{r, message=FALSE, warning=FALSE}
+only_pufa <- c("18:0", "18:1n-7", "18:1n-9c", "18:1n-9t", "20:0", "20:1n-9", "22:0", "22:1n-9", "24:0", "24:1n-9")
+
+microcosm <- filter(microcosm, name_pufa %notin% only_pufa)
+```
+
+Calculate total PUFA amount and add to microcosm-table
+```{r, message=FALSE, warning=FALSE}
+microcosm_prop <- ddply(microcosm, c("Organism", "treatment", "experiment", "experiment_ID", "runinfo", "runname", "dry_weight_mg"), summarise, total_pufa=sum(dry_pufa))
+
+microcosm <- merge(microcosm, microcosm_prop, by = c("Organism", "treatment", "experiment", "experiment_ID", "runinfo", "runname", "dry_weight_mg"))
+```
+
+Calculate proportion single PUFA of total PUFA
+```{r, message=FALSE, warning=FALSE}
+microcosm$prop_pufa <- with(microcosm, (dry_pufa/total_pufa))
+```
+
+Get date from runinfo: Separate column runinfo
+```{r, message=FALSE, warning=FALSE}
+microcosm <- separate(microcosm, runinfo, into = c("a", "b", "c", "d", "e"), sep = " ", remove = FALSE)
+```
+
+Check in which columns date
+```{r, message=FALSE, warning=FALSE}
+unique(microcosm$a) # no date
+unique(microcosm$b) # only 06.05.2019
+unique(microcosm$c) # several dates
+unique(microcosm$d) # several dates
+unique(microcosm$e) # only 31.05.2019
+```
+
+Get column date
+```{r, message=FALSE, warning=FALSE}
+microcosm$date <- with(microcosm, ifelse(!is.na(as.Date(microcosm$b,
+                                                     "%d.%m.%Y")), b, NA))
+microcosm$date <- with(microcosm, ifelse(!is.na(as.Date(microcosm$c,
+                                                      "%d.%m.%Y")), c, date))
+microcosm$date <- with(microcosm, ifelse(!is.na(as.Date(microcosm$d,
+                                                      "%d.%m.%Y")), d, date))
+microcosm$date <- with(microcosm, ifelse(!is.na(as.Date(microcosm$e,
+                                                      "%d.%m.%Y")), e, date))
+
+unique((filter(microcosm, is.na(date)))$Organism) # all NAs were spiders and this is correct, because there no date added
+```
+
+Remove columns a - e
+```{r, message=FALSE, warning=FALSE}
+microcosm <- select(microcosm, -c("a", "b", "c", "d", "e"))
+```
+
+Put in wide format for statistics
+```{r, message=FALSE, warning=FALSE}
+microcosm_stat <- reshape2::dcast(microcosm, date + Organism + treatment + experiment + experiment_ID + runinfo + runinfo_original + runname + dry_weight_mg ~ name_pufa,
+                       value.var = "prop_pufa", fill = 0)
+```
+
+Correct organism for PUFA-KF_25.01.2020 10_28_463
+```{r, message=FALSE, warning=FALSE}
+microcosm_stat$Organism[microcosm_stat$runname == "PUFA-KF_25.01.2020 10_28_463"]  <- "oatmeal"
+```
+
+Spiders:
+* 176_leaves_18: PUFA-KF_08.01.2020 18_31_4311 and PUFA-KF_08.01.2020 19_27_2212. Keep second measurement, because first did not work 
+```{r, message=FALSE, warning=FALSE}
+microcosm_stat <- filter(microcosm_stat, runname != "PUFA-KF_08.01.2020 18_31_4311")
+```
+
+* 186_oatmeal_3: 4 measurements to test reaction time and volume sample and TMSH. Keep PUFA-KF_08.01.2020 17_34_5410, because this volumes and times used for other samples
+```{r, message=FALSE, warning=FALSE}
+microcosm_stat <- filter(microcosm_stat, runname != "PUFA-KF_08.01.2020 12_25_237")
+microcosm_stat <- filter(microcosm_stat, runname != "PUFA-KF_08.01.2020 14_58_409")
+microcosm_stat <- filter(microcosm_stat, runname != "PUFA-KF_08.01.2020 13_52_298")
+```
+
+Food sources:
+
+* 31.05.2019 algae 2: Keep PUFA-KF_10.01.2020 21_34_4214, because better measurement
+```{r, message=FALSE, warning=FALSE}
+microcosm_stat <- filter(microcosm_stat, runname != "PUFA-KF_10.01.2020 16_00_528")
+```
+
+* 24.05.2019 algae 1: Keep PUFA-KF_30.05.2020 12_59_2929, because other measurement did not work properly
+```{r, message=FALSE, warning=FALSE}
+microcosm_stat <- filter(microcosm_stat, runname != "PUFA-KF_30.05.2020 09_16_2725")
+```
+
+* 06.05.2019 oatmeal: Keep PUFA-KF_10.01.2020 13_13_465, because better measurement
+```{r, message=FALSE, warning=FALSE}
+microcosm_stat <- filter(microcosm_stat, runname != "PUFA-KF_10.01.2020 18_47_4911")
+```
+
+* 04.06.2019 leaves 10: Keep PUFA-KF_10.01.2020 15_05_227, because better measurement
+```{r, message=FALSE, warning=FALSE}
+microcosm_stat <- filter(microcosm_stat, runname != "PUFA-KF_10.01.2020 20_39_0813")
+```
+
+* 24.05.2019 fishfood 2: Keep PUFA-KF_10.01.2020 14_09_396, because better measurement
+```{r, message=FALSE, warning=FALSE}
+microcosm_stat <- filter(microcosm_stat, runname != "PUFA-KF_10.01.2020 19_43_2812")
+```
+
+Get variables for statistics
+```{r, message=FALSE, warning=FALSE}
+microcosm_stat <- select(microcosm_stat, -c("runinfo", "runinfo_original", "runname"))
+```
+
+Get spider_ID_experiment_ID
+```{r, message=FALSE, warning=FALSE}
+microcosm_stat$spider_ID_experiment_ID <- with(microcosm_stat, ifelse(Organism == "spider" & treatment != "start" & experiment == "M2", experiment_ID, ""))
+```
+
+Get experiment_ID without spider_ID
+```{r, message=FALSE, warning=FALSE}
+microcosm_stat$experiment_ID <- gsub("^\\d\\d\\d[[:punct:]]", "", microcosm_stat$experiment_ID)
+```
+
+Merge with spider_treatment
+```{r, message=FALSE, warning=FALSE}
+microcosm_stat <- left_join(microcosm_stat, spider_treatment, 
+                  by = c("Organism", "treatment", "experiment", "experiment_ID"))
+unique((filter(microcosm_stat, is.na(date_treatment_ended)))$treatment) # all NAs for spiders were start spiders and this is correct; all other NAs belong not so spiders so also correct
+```
+
+Add date for spiders
+```{r, message=FALSE, warning=FALSE}
+microcosm_stat$date <- with(microcosm_stat,
+                           ifelse(Organism == "spider", date_treatment_ended, date))
+```
+
+Select columns
+```{r, message=FALSE, warning=FALSE}
+microcosm_stat <- select(microcosm_stat, c("date", "Organism", "treatment", "experiment", "experiment_ID", "dry_weight_mg", "18:2n-6c", "18:2n-6t", "18:3n-3", "18:3n-6", "20:2n-6", "20:3n-3", "20:3n-6", "20:4n-6", "20:5n-3", "22:2n-6", "22:6n-3", "spider_ID_experiment_ID"))
+```
+
+date in date format
+```{r, message=FALSE, warning=FALSE}
+microcosm_stat$date <- as.Date(microcosm_stat$date, "%d.%m.%Y")
+names(microcosm_stat)[1] <- "date_endpoint"
+```
+
+## Remove spiders not used in experiment
+
+Spiders with ID 101, 125, 128, 129, 141, 205 and 224 not used in experiment
+```{r, message=FALSE, warning=FALSE}
+remove <- c(101, 125, 128, 129, 141, 205, 224)
+
+encapsulation_stat <- filter(encapsulation_stat, spider_ID %notin% remove)
+growth_stat <- filter(growth_stat, spider_ID %notin% remove)
+condition_stat <- filter(condition_stat, spider_ID %notin% remove)
+
+microcosm_stat <- filter(microcosm_stat, experiment_ID != 141)
+```
+
+# Merge data
+### Weekly endpoints
+
+Weekly endpoints: growth_stat
+```{r, message=FALSE, warning=FALSE}
+spider_treatment_M1 <- left_join(spider_treatment_M1, growth_stat, by = c("Organism", "date_endpoint", "experiment", "experiment_ID", "treatment", "spider_ID"))
+
+spider_treatment_M2 <- left_join(spider_treatment_M2, growth_stat, by = c("Organism", "date_endpoint", "experiment", "experiment_ID", "treatment", "spider_ID"))
+```
+
+Weekly endpoints: condition_stat
+```{r, message=FALSE, warning=FALSE}
+spider_treatment_M1 <- left_join(spider_treatment_M1, condition_stat, by = c("Organism", "date_endpoint", "experiment", "experiment_ID", "treatment", "spider_ID"))
+
+spider_treatment_M2 <- left_join(spider_treatment_M2, condition_stat, by = c("Organism", "date_endpoint", "experiment", "experiment_ID", "treatment", "spider_ID"))
+```
+
+No condition pictures taken, because spider already broken:
+2019-07-26	spider	M2	fishfood_19	fishfood	177: Only prosoma left
+2019-07-26	spider	M2	fishfood_12	fishfood	166: Already dried
+
+### Deadly endpoints
+
+Deadly endpoints: encapsulation_stat
+```{r, message=FALSE, warning=FALSE}
+spider_treatment_M1 <- left_join(spider_treatment_M1, encapsulation_stat, by = c("Organism", "date_endpoint", "experiment", "experiment_ID", "treatment", "spider_ID"))
+
+spider_treatment_M2 <- left_join(spider_treatment_M2, encapsulation_stat, by = c("Organism", "date_endpoint", "experiment", "experiment_ID", "treatment", "spider_ID"))
+```
+
+Spider found dead, so no encapsulation assay:
+M1 oatmeal_5 54
+M1 oatmeal_5 123
+M1 oatmeal_19 56
+M1 fishfood_8 71
+M1 fishfood_20 67
+M1 fishfood_14 117
+M1 fishfood_1 93
+M1 algae_5 82
+M1 algae_1 104
+
+Spider not found, so no encapsulation assay:
+M2 leaves_10 174
+
+Deadly endpoints: microcosm_stat
+```{r, message=FALSE, warning=FALSE}
+spider_treatment_M1 <- left_join(spider_treatment_M1, microcosm_stat, by = c("Organism", "date_endpoint", "spider_ID_experiment_ID", "experiment", "experiment_ID", "treatment"))
+
+spider_treatment_M2 <- left_join(spider_treatment_M2, microcosm_stat, by = c("Organism", "date_endpoint", "spider_ID_experiment_ID", "experiment", "experiment_ID", "treatment"))
+```
+
+# Deal with replacement spiders
+
+Remove spiders, that died and were replaced:
+
+* In M1 treatments with replacement: oatmeal_1, oatmeal_5, fishfood_7, algae_4, algae_19
+```{r, message=FALSE, warning=FALSE}
+remove <- c(27, 54, 84, 88, 105)
+M1_stat <- filter(spider_treatment_M1, spider_ID %notin% remove)
+```
+
+* In M2 treatments with 2 replacements: oatmeal_2, fishfood_4. 
+* Do not use replace_2 spider 182 from oatmeal_2, because many missing values and PUFA analysis was done with replace_1 spider. So remove replace_2 spider and original spider.
+
+```{r, message=FALSE, warning=FALSE}
+remove <- c(171, 182) 
+M2_stat <- filter(spider_treatment_M2, spider_ID %notin% remove)
+```
+
+Use fishfood_4 replace_2, so remove replace_1 and original spider
+```{r, message=FALSE, warning=FALSE}
+remove <- c(175, 136)
+M2_stat <- filter(M2_stat, spider_ID %notin% remove)
+```
+
+In M2 treatments with 1 replacement: oatmeal_19, fishfood_1, fishfood_2, fishfood_4, fishfood_12, fishfood_19, leaves_1, leaves_2, leaves_11, leaves_15, leaves_17, leaves_19, leaves_20.
+```{r, message=FALSE, warning=FALSE}
+remove <- c(135, 198, 170, 214, 199, 207, 197, 179, 183, 144, 210, 192) 
+M2_stat <- filter(M2_stat, spider_ID %notin% remove)
+```
+
+# Prepare data for statistics
+## Define time points 
+
+M1: For replace spiders no values on 29.04.2019: Use 03.05.2019 as starting value
+```{r, message=FALSE, warning=FALSE}
+M1_stat$timepoint <- with(M1_stat, ifelse(date_endpoint == "2019-04-29", "t0",
+                         ifelse(date_endpoint == "2019-05-08", "t2",
+                         ifelse(date_endpoint == "2019-05-15", "t3",
+                         ifelse(date_endpoint == "2019-05-22", "t4",
+                         ifelse(date_endpoint == "2019-05-29", "t5",
+                         ifelse(date_endpoint == "2019-06-05", "t6",
+                         ifelse(date_endpoint == "2019-06-12", "t7",
+                         ifelse(date_endpoint == "2019-05-03", "t0",
+                                "no_regular")))))))))
+
+```
+
+Remove t0 = 29.04.2019 for replace spiders
+```{r, message=FALSE, warning=FALSE}
+remove <- c(123, 126, 127, 122, 124)
+M1_stat <- filter(M1_stat, date_endpoint != "2019-04-29" | spider_ID %notin% remove)
+```
+
+Define time points for M2
+```{r, message=FALSE, warning=FALSE}
+M2_stat$timepoint <- with(M2_stat, ifelse(date_endpoint == "2019-07-08", "t0",
+                         ifelse(date_endpoint == "2019-07-15", "t1",
+                         ifelse(date_endpoint == "2019-07-22", "t2",
+                         ifelse(date_endpoint == "2019-07-29", "t3",
+                                "no_regular")))))
+```
+
+## Get one table for weekly and deadly endpoints
+
+One table for weekly and one for deadly endpoints
+```{r, message=FALSE, warning=FALSE}
+M1_stat_weekly <- filter(M1_stat, timepoint != "no_regular")
+deadly <- c("t0", "t4", "t7")
+M1_stat_deadly <- filter(M1_stat, timepoint %in% deadly)
+
+M2_stat_weekly <- filter(M2_stat, timepoint != "no_regular")
+M2_stat_deadly <- filter(M2_stat_weekly, timepoint != "t1")
+```
+
+Chose column for weekly and deadly endpoints
+```{r, message=FALSE, warning=FALSE}
+M1_stat_weekly <- select(M1_stat_weekly, c("Organism", "treatment", "experiment",
+                  "experiment_ID", "spider_ID", "weight_spider_g", 
+                  "prosoma_width_cm", "opisthosoma_width_cm", 
+                  "timepoint", "date_endpoint", "body_cond"))
+
+M1_stat_deadly <- select(M1_stat_deadly, c("Organism", "treatment", "experiment",
+                  "experiment_ID", "spider_ID", "timepoint", "dead_not_found_encapsulation","mean_R_e_ne",
+                  "mean_area_encapsulation", "dry_weight_mg", 
+                  "18:2n-6c", "18:2n-6t", "18:3n-3",
+                  "18:3n-6", "20:2n-6", "20:3n-3", "20:3n-6",
+                  "20:4n-6", "20:5n-3", "22:2n-6", "22:6n-3"))
+
+M2_stat_weekly <- select(M2_stat_weekly, c("Organism", "treatment", "experiment",
+                  "experiment_ID", "spider_ID", "weight_spider_g",  
+                  "prosoma_width_cm", "opisthosoma_width_cm",
+                  "timepoint", "date_endpoint", "body_cond"))
+
+M2_stat_deadly <- select(M2_stat_deadly, c("Organism", "treatment", "experiment",
+                  "experiment_ID", "spider_ID", "timepoint", "dead_not_found_encapsulation", "mean_R_e_ne",
+                  "mean_area_encapsulation", "dry_weight_mg", 
+                  "18:2n-6c", "18:2n-6t", "18:3n-3",
+                  "18:3n-6", "20:2n-6", "20:3n-3", "20:3n-6",
+                  "20:4n-6", "20:5n-3", "22:2n-6", "22:6n-3"))
+```
+
+## Deal with start spiders
+### Deadly endpoints
+Remove not start spiders from t0 deadly endpoints (only start spiders used there for deadly endpoints)
+```{r, message=FALSE, warning=FALSE}
+M1_stat_deadly <- filter(M1_stat_deadly, timepoint != "t0" | treatment == "start")
+
+M2_stat_deadly <- filter(M2_stat_deadly, timepoint != "t0" | treatment == "start")
+```
+
+Remove spiders, from earlier timepoint, if they were used in later deadly endpoint
+```{r, message=FALSE, warning=FALSE}
+remove <- filter(M1_stat_deadly, timepoint == "t7")
+remove <- unique(remove$spider_ID)
+M1_stat_deadly <- filter(M1_stat_deadly, timepoint != "t4" | spider_ID %notin% remove)
+
+remove <- filter(M2_stat_deadly, timepoint == "t3")
+remove <- unique(remove$spider_ID)
+M2_stat_deadly <- filter(M2_stat_deadly, timepoint != "t2" | spider_ID %notin% remove)
+```
+
+Assign start spiders randomly to treatment: M1
+```{r, message=FALSE, warning=FALSE}
+M1_start <- filter(M1_stat_deadly, treatment == "start")
+treatment <- c(rep("algae", 7), rep("oatmeal", 7), rep("fishfood", 6))
+
+set.seed(222)
+M1_start$rnd_treatment <- sample(treatment)
+
+M1_start_algae <- M1_start$spider_ID[M1_start$rnd_treatment == "algae"]
+M1_start_oatmeal <- M1_start$spider_ID[M1_start$rnd_treatment == "oatmeal"]
+M1_start_fishfood <- M1_start$spider_ID[M1_start$rnd_treatment == "fishfood"]
+
+M1_stat_deadly$treatment <- with(M1_stat_deadly, 
+                                 ifelse(spider_ID %in% M1_start_algae, "algae",
+                                 ifelse(spider_ID %in% M1_start_oatmeal, "oatmeal",
+                                 ifelse(spider_ID %in% M1_start_fishfood, "fishfood",
+                                        treatment))))
+```
+
+Assign start spiders randomly to treatment: M2
+```{r, message=FALSE, warning=FALSE}
+M2_start <- filter(M2_stat_deadly, treatment == "start")
+treatment <- c(rep("leaves", 5), rep("oatmeal", 4), rep("fishfood", 4))
+
+set.seed(222)
+M2_start$rnd_treatment <- sample(treatment)
+
+M2_start_leaves <- M2_start$spider_ID[M2_start$rnd_treatment == "leaves"]
+M2_start_oatmeal <- M2_start$spider_ID[M2_start$rnd_treatment == "oatmeal"]
+M2_start_fishfood <- M2_start$spider_ID[M2_start$rnd_treatment == "fishfood"]
+
+M2_stat_deadly$treatment <- with(M2_stat_deadly, 
+                                 ifelse(spider_ID %in% M2_start_leaves, "leaves",
+                                 ifelse(spider_ID %in% M2_start_oatmeal, "oatmeal",
+                                 ifelse(spider_ID %in% M2_start_fishfood, "fishfood",
+                                        treatment))))
+```
+
+Remove spiders, where no deadly endpoints taken, because spider was not found or already dead
+```{r, message=FALSE, warning=FALSE}
+M1_stat_deadly <- filter(M1_stat_deadly, dead_not_found_encapsulation == "e")
+
+M2_stat_deadly <- filter(M2_stat_deadly, dead_not_found_encapsulation == "e")
+```
+
+### Weekly endpoints
+
+Remove start spiders from weekly endpoints, because there for every spider variables measured for t0
+```{r, message=FALSE, warning=FALSE}
+M1_stat_weekly <- filter(M1_stat_weekly, treatment != "start")
+
+M2_stat_weekly <- filter(M2_stat_weekly, treatment != "start")
+```
+
+## Check NAs
+
+Check NAs in M1_stat_deadly
+
+* NA in encapsulation correct because monofilament lost: 22, 65, 44, 115, 24, 60 oatmeal 10, 90 oatmeal 20 
+```{r, message=FALSE, warning=FALSE}
+M1_NA_check <- filter(M1_stat_deadly, is.na(mean_R_e_ne))
+filter(M1_NA_check, spider_ID %notin% c(22, 65, 44, 115, 24, 60, 90))
+```
+
+Check NAs in M2_stat_deadly
+
+* NA in encapsulation correct because monofilament lost: 186 oatmeal 3, 131 fishfood 14
+```{r, message=FALSE, warning=FALSE}
+M2_NA_check <- filter(M2_stat_deadly, is.na(mean_R_e_ne))
+filter(M2_NA_check, spider_ID %notin% c(186, 131))
+```
+
+Check NAs in M1_stat_weekly
+
+* NA in opisthosoma_width_cm for algae_8 89 at t5 correctly, because opisthosoma was missing, so not use weight_spider_g from t5 for statistics
+```{r, message=FALSE, warning=FALSE}
+M1_NA_check <- filter(M1_stat_weekly, is.na(weight_spider_g))
+
+M1_NA_check <- filter(M1_stat_weekly, is.na(prosoma_width_cm))
+
+M1_NA_check <- filter(M1_stat_weekly, is.na(opisthosoma_width_cm))
+```
+
+Check NAs in M2_stat_weekly
+
+* NAs fishfood_4 (two times) and leaves_2 correctly, no weight_spider_g and body_cond
+```{r, message=FALSE, warning=FALSE}
+M2_NA_check <- filter(M2_stat_weekly, is.na(weight_spider_g))
+
+M2_NA_check <- filter(M2_stat_weekly, is.na(prosoma_width_cm))
+
+M2_NA_check <- filter(M2_stat_weekly, is.na(opisthosoma_width_cm))
+```
+
+Remove fishfood_4 (two times) and leaves_2 
+```{r, message=FALSE, warning=FALSE}
+M2_stat_weekly <- filter(M2_stat_weekly, !is.na(weight_spider_g))
+```
+
+## Remove spiders with missing parts
+Weight cannot be compared with other spiders and no photo for body condition could be taken 
+
+Check spiders with missing opisthosoma
+```{r, message=FALSE, warning=FALSE}
+missing_opisthosoma <- filter(growth, comments %like% "opisthosoma")
+missing_prosoma <- filter(growth, comments %like% "prosoma") # already removed earlier
+```
+
+algae_8 89 at t5, because opisthosoma was missing
+```{r, message=FALSE, warning=FALSE}
+M1_stat_weekly <- filter(M1_stat_weekly, timepoint != "t5" | spider_ID %notin% c(89))
+```
+
+oatmeal_7 80 at t6, because opisthosoma was missing
+```{r, message=FALSE, warning=FALSE}
+M1_stat_weekly <- filter(M1_stat_weekly, timepoint != "t6" | spider_ID %notin% c(80))
+```
+
+## Calculate growth rate
+
+Check variability of fresh weight, thorax (= prosoma) as well as abdomen (=opisthosoma) width of spiders 
+
+M1
+```{r, message=FALSE, warning=FALSE}
+M1_check_data <- reshape2::melt(M1_stat_weekly, id.vars = c("Organism", "treatment", "experiment", "experiment_ID", "spider_ID", "timepoint", "date_endpoint"))
+
+M1_check_data <- filter(M1_check_data, variable != "body_cond")
+
+ggplot() +
+  theme_classic() + 
+  theme(legend.title = element_text(size=15), legend.position="bottom", plot.title = element_text(size=20), legend.text = element_text(size=20), axis.text = element_text(size=15), axis.title = element_text(size=15)) +
+geom_boxplot(data=M1_check_data[M1_check_data$variable == "weight_spider_g",], 
+            aes(x=variable, y=value, col = treatment), show.legend = TRUE) +
+  labs(title = "Fresh weight spider M1", 
+       x="",
+       y=expression(Weight ~"("~g~")")) 
+
+ggplot() +
+  theme_classic() + 
+  theme(legend.title = element_text(size=15), legend.position="bottom", plot.title = element_text(size=20), legend.text = element_text(size=20), axis.text = element_text(size=15), axis.title = element_text(size=15)) +
+geom_boxplot(data=M1_check_data[M1_check_data$variable != "weight_spider_g",], 
+            aes(x=variable, y=value, col = treatment), show.legend = TRUE) +
+  labs(title = "Width M1", 
+       x="",
+       y=expression(Width ~"("~cm~")")) 
+```
+
+M2
+```{r, message=FALSE, warning=FALSE}
+M2_check_data <- reshape2::melt(M2_stat_weekly, id.vars = c("Organism", "treatment", "experiment", "experiment_ID", "spider_ID", "timepoint", "date_endpoint"))
+
+M2_check_data <- filter(M2_check_data, variable != "body_cond")
+
+ggplot() +
+  theme_classic() + 
+  theme(legend.title = element_text(size=15), legend.position="bottom", plot.title = element_text(size=20), legend.text = element_text(size=20), axis.text = element_text(size=15), axis.title = element_text(size=15)) +
+geom_boxplot(data=M2_check_data[M2_check_data$variable == "weight_spider_g",], 
+            aes(x=variable, y=value, col = treatment), show.legend = TRUE) +
+  labs(title = "Fresh weight spider M2", 
+       x="",
+       y=expression(Weight ~"("~g~")")) 
+
+ggplot() +
+  theme_classic() + 
+  theme(legend.title = element_text(size=15), legend.position="bottom", plot.title = element_text(size=20), legend.text = element_text(size=20), axis.text = element_text(size=15), axis.title = element_text(size=15)) +
+geom_boxplot(data=M2_check_data[M2_check_data$variable != "weight_spider_g",], 
+            aes(x=variable, y=value, col = treatment), show.legend = TRUE) +
+  labs(title = "Width M2", 
+       x="",
+       y=expression(Width ~"("~cm~")")) 
+```
+
+In both experiments abdomen slightly more variability than thorax
+
+Prepare data
+
+time point in days
+```{r, message=FALSE, warning=FALSE}
+M1_stat_weekly$days <- with(M1_stat_weekly, ifelse(timepoint == "t0", 0,
+                                            ifelse(timepoint == "t2", 9,
+                                            ifelse(timepoint == "t3", 16,
+                                            ifelse(timepoint == "t4", 23,
+                                            ifelse(timepoint == "t5", 30,
+                                            ifelse(timepoint == "t6", 37, 44)))))))
+
+M2_stat_weekly$days <- with(M2_stat_weekly, ifelse(timepoint == "t0", 0,
+                                            ifelse(timepoint == "t1", 7,
+                                            ifelse(timepoint == "t2", 14, 21))))
+```
+
+time point in weeks
+```{r, message=FALSE, warning=FALSE}
+M1_stat_weekly$weeks <- with(M1_stat_weekly, days/7)
+
+M2_stat_weekly$weeks <- with(M2_stat_weekly, days/7)
+```
+
+Get fresh weight and thorax width at t0 for every spider
+```{r, message=FALSE, warning=FALSE}
+M1_t0 <- filter(M1_stat_weekly, timepoint == "t0")
+M1_t0 <- select(M1_t0, c("Organism", "treatment", "experiment", "experiment_ID",
+                         "spider_ID", "weight_spider_g", "prosoma_width_cm"))
+names(M1_t0)[6] <- "weight_t0"
+names(M1_t0)[7] <- "thorax_t0"
+
+M1_stat_weekly <- merge(M1_stat_weekly, M1_t0, by = c("Organism", "treatment", "experiment", "experiment_ID", "spider_ID"))
+
+M2_t0 <- filter(M2_stat_weekly, timepoint == "t0")
+M2_t0 <- select(M2_t0, c("Organism", "treatment", "experiment", "experiment_ID",
+                         "spider_ID", "weight_spider_g", "prosoma_width_cm"))
+names(M2_t0)[6] <- "weight_t0"
+names(M2_t0)[7] <- "thorax_t0"
+
+M2_stat_weekly <- merge(M2_stat_weekly, M2_t0, by = c("Organism", "treatment", "experiment", "experiment_ID", "spider_ID"))
+```
+
+
+
+$$ growth\ rate = {{ln (fresh\ weight_{t_x}) - ln (fresh\ weight_{t_0})}  \over {t_x}} $$
+```{r, message=FALSE, warning=FALSE}
+M1_stat_weekly$growth_rate <- with(M1_stat_weekly,
+                                    (log(weight_spider_g)-log(weight_t0))/weeks)
+
+M2_stat_weekly$growth_rate <- with(M2_stat_weekly,
+                                    (log(weight_spider_g)-log(weight_t0))/weeks)
+```
+
+## Chose data for statistical analysis
+```{r, message=FALSE, warning=FALSE}
+M1_stat_weekly <- select(M1_stat_weekly, c("Organism", "treatment", "experiment", "experiment_ID", "spider_ID", "weight_spider_g", "timepoint", "date_endpoint", "body_cond", "growth_rate"))
+
+M2_stat_weekly <- select(M2_stat_weekly, c("Organism", "treatment", "experiment", "experiment_ID", "spider_ID", "weight_spider_g", "timepoint", "date_endpoint", "body_cond", "growth_rate"))
+```
+
+# NMDS
+## Preparation
+
+Use microcosm_stat, because we need also PUFA data for chiros and basic food source. On M1_stat_deadly and M2_stat_deadly only spiders.
+```{r, message=FALSE, warning=FALSE}
+M1_microcosm_stat <- filter(microcosm_stat, experiment == "M1")
+M2_microcosm_stat <- filter(microcosm_stat, experiment == "M2")
+```
+
+Add time point M1
+```{r, message=FALSE, warning=FALSE}
+M1_microcosm_stat$timepoint <- with(M1_microcosm_stat, 
+       ifelse(date_endpoint < "2019-05-03", "t0",
+       ifelse("2019-05-03" <= date_endpoint & date_endpoint <= "2019-05-22", "t4",
+               "t7")))
+```
+
+Add time point M2
+For leaves date is time, when leaves were taken out of stream. Leaves used in experiment at other date/time point:
+
+* 2019-06-04 and 2019-06-18: t2 
+* 2019-07-02 and 2019-07-16: t3
+
+```{r, message=FALSE, warning=FALSE}
+M2_microcosm_stat$timepoint <- with(M2_microcosm_stat, 
+       ifelse(date_endpoint == "2019-07-08", "t0",
+       ifelse(date_endpoint == "2019-07-22", "t2",
+       ifelse(date_endpoint == "2019-06-04", "t2", 
+       ifelse(date_endpoint == "2019-06-18", "t2",
+       ifelse(date_endpoint == "2019-07-12", "t2",
+       ifelse(date_endpoint == "2019-07-19", "t2",      
+       ifelse(date_endpoint == "2019-07-02", "t3",
+       ifelse(date_endpoint == "2019-07-16", "t3"        
+               ,"t3")))))))))  
+```
+
+Assign start spiders randomly to treatment: M1
+```{r, message=FALSE, warning=FALSE}
+M1_microcosm_stat$treatment <- with(M1_microcosm_stat, 
+                                 ifelse(experiment_ID %in% M1_start_algae, "algae",
+                                 ifelse(experiment_ID %in% M1_start_oatmeal, "oatmeal",
+                                 ifelse(experiment_ID %in% M1_start_fishfood, "fishfood",
+                                        treatment))))
+```
+
+Assign start spiders randomly to treatment: M2
+```{r, message=FALSE, warning=FALSE}
+M2_microcosm_stat$treatment <- with(M2_microcosm_stat, 
+                                 ifelse(experiment_ID %in% M2_start_leaves, "leaves",
+                                 ifelse(experiment_ID %in% M2_start_oatmeal, "oatmeal",
+                                 ifelse(experiment_ID %in% M2_start_fishfood, "fishfood",
+                                        treatment))))
+```
+
+Count number of samples per treatment, trophic level and endpoint
+```{r, message=FALSE, warning=FALSE}
+M1_count <- count(M1_microcosm_stat, c("Organism", "treatment", "timepoint"))
+M1_count$timepoint <- with(M1_count, ifelse(timepoint == "t0", 0,
+                                     ifelse(timepoint == "t4", 23, 44)))
+M1_count$Organism <- gsub("chiro", "chironomid", M1_count$Organism)
+M1_count$Organism <- with(M1_count, 
+                     ifelse(Organism %in% 
+                              c("algae", "fishfood", "oatmeal"), 
+                            "basic food source",Organism))
+M1_count$treatment <- gsub("fishfood", "fish food", M1_count$treatment)
+M1_count$experiment <- "1"
+
+M1_count <- arrange(M1_count, treatment, timepoint, Organism)
+
+names(M1_count)[1] <- "trophic level"
+names(M1_count)[3] <- "time point (days)"
+names(M1_count)[4] <- "number samples"
+
+M1_count <- select(M1_count, c("experiment", "treatment", 
+                   "time point (days)", "trophic level", "number samples"))
+
+
+M2_count <- count(M2_microcosm_stat, c("Organism", "treatment", "timepoint")) 
+M2_count$timepoint <- with(M2_count, ifelse(timepoint == "t0", 0,
+                                     ifelse(timepoint == "t2", 14, 21)))
+M2_count$Organism <- gsub("chiro", "chironomid", M2_count$Organism)
+M2_count$Organism <- with(M2_count, 
+                     ifelse(Organism %in% 
+                              c("leaves", "fishfood", "oatmeal"), 
+                            "basic food source",Organism))
+M2_count$treatment <- gsub("fishfood", "fish food", M2_count$treatment)
+M2_count$experiment <- "2"
+
+M2_count <- arrange(M2_count, treatment, timepoint, Organism)
+
+names(M2_count)[1] <- "trophic level"
+names(M2_count)[3] <- "time point (days)"
+names(M2_count)[4] <- "number samples"
+
+M2_count <- select(M2_count, c("experiment", "treatment", 
+                   "time point (days)", "trophic level", "number samples"))
+
+
+count <- rbind(M1_count, M2_count)
+
+#write.csv(count, "no_samples_count.csv", row.names = FALSE)
+```
+
+Get matrix for pufa and treatment information
+```{r, message=FALSE, warning=FALSE}
+M1_treatment <- select(M1_microcosm_stat, c("Organism", "treatment", "timepoint"))
+
+M1_pufa <- select(M1_microcosm_stat, -c("Organism", "treatment", "timepoint", "date_endpoint", "experiment", "experiment_ID", "dry_weight_mg", "spider_ID_experiment_ID"))
+M1_pufa_ma <- as.matrix(M1_pufa)
+
+M2_treatment <- select(M2_microcosm_stat, c("Organism", "treatment", "timepoint"))
+
+M2_pufa <- select(M2_microcosm_stat, -c("Organism", "treatment", "timepoint", "date_endpoint", "experiment", "experiment_ID", "dry_weight_mg", "spider_ID_experiment_ID"))
+M2_pufa_ma <- as.matrix(M2_pufa)
+```
+
+Function to calculate relationship between dimensions and stress
+```{r, message=FALSE, warning=FALSE}
+scree_values <- function(x, max, dist_meas) {
+  xx <- as.matrix(x)
+  scree.points <- NULL
+  scree.temp <- 1
+  for (i in 1:max)
+  {
+    sol.mds <- NULL
+    sol.mds <- replicate(
+      10, metaMDS(xx, k = i, trymax = 30, distance = dist_meas)$stress,
+      simplify = TRUE
+    )
+    scree.points <- append(scree.points, sol.mds)
+  }
+  return(scree.points)
+}
+```
+
+## M1
+
+Get and plot relationship between dimensions and stress
+* red line indicates threshold for good Stress1 value
+* Choose 2 dimensions
+
+```{r, message=FALSE, warning=FALSE}
+#M1_scree.res <- scree_values(M1_pufa_ma, max = 10, dist_meas = "euclidean")
+#saveRDS(M1_scree.res, file = "M1_scree.res.rds")
+M1_scree.res <- readRDS(file = "/Users/katharinafrisch/Nextcloud/Uni/Paper/Microcosm Paper/Submission/Ecology_and_Evolution_submission/2_second_submission/ohler_microcosm/statistics/PUFA_data/M1_scree.res.rds")
+
+par(cex = 1.5, las = 1)
+plot_vec <- as.vector(sapply(1:(length(M1_scree.res) / 10), function(x) rep(x, 10), simplify = "vector"))
+# prerequisite for plotting replicated runs of nmds
+plot(plot_vec, M1_scree.res, ylab = "Stress1", xlab = "dimensions")
+lines(1:(length(M1_scree.res) / 10), as.vector((by(M1_scree.res, plot_vec, mean))))
+abline(h = 0.10, col = "red")
+```
+
+### Run NMDS 
+with Euclidean distance
+```{r, message=FALSE, warning=FALSE}
+#M1_nmds <- metaMDS(M1_pufa_ma, k = 2, distance = "euclidean", autotransform = FALSE)
+#saveRDS(M1_nmds, file = "M1_nmds.rds")
+M1_nmds <- readRDS(file = "/Users/katharinafrisch/Nextcloud/Uni/Paper/Microcosm Paper/Submission/Ecology_and_Evolution_submission/2_second_submission/ohler_microcosm/statistics/PUFA_data/M1_nmds.rds")
+```
+
+Shepard diagram
+* Non-metric fit is based on stress and calculated as R^2 = sqrt(1- S^2)
+* Linear R^2 = explained variation of regression of observed distances against ordination distances
+* Looks okay
+```{r, message=FALSE, warning=FALSE}
+stressplot(M1_nmds)
+```
+
+### Plot NMDS
+#### Prepare data for plotting
+Get data of NMDS
+```{r, message=FALSE, warning=FALSE}
+M1_pufa_scores <- as.data.frame(M1_nmds$species)
+M1_pufa_scores$pufa <- rownames(M1_pufa_scores)
+
+M1_sample_scores <-as.data.frame(M1_nmds$points)
+M1_sample_scores <- cbind(M1_sample_scores, M1_treatment)
+```
+
+Rename some variables
+```{r, message=FALSE, warning=FALSE}
+M1_sample_scores$treatment <- gsub("fishfood", "fish food", M1_sample_scores$treatment)
+M1_sample_scores$Organism <- gsub("fishfood", "fish food", M1_sample_scores$Organism)
+M1_sample_scores$Organism <- gsub("chiro", "chironomids", M1_sample_scores$Organism)
+M1_sample_scores$timepoint <- gsub("t0", "0 days", M1_sample_scores$timepoint)
+M1_sample_scores$timepoint <- gsub("t4", "23 days", M1_sample_scores$timepoint)
+M1_sample_scores$timepoint <- gsub("t7", "44 days", M1_sample_scores$timepoint)
+```
+
+Get single spider scores and mean and sd of chiro and food source scores
+```{r, message=FALSE, warning=FALSE}
+M1_spider_scores <- filter(M1_sample_scores, Organism == "spider")
+
+M1_chiro_food <- filter(M1_sample_scores, Organism != "spider")
+M1_chiro_food_mean <- ddply(M1_chiro_food, c("Organism", "treatment", "timepoint"),
+                              summarise, MDS1 = mean(MDS1), MDS2 = mean(MDS2))
+
+M1_chiro_food_sd <- filter(M1_sample_scores, Organism != "spider")
+M1_chiro_food_sd <- ddply(M1_chiro_food_sd, c("Organism", "treatment", "timepoint"),
+                              summarise, sd_MDS1 = sd(MDS1),sd_MDS2 = sd(MDS2))
+
+M1_chiro_food_sd <- left_join(M1_chiro_food_mean, M1_chiro_food_sd, 
+                           by = c("Organism", "treatment", "timepoint"))
+
+M1_spider_chiro_food_scores <- rbind(M1_spider_scores, M1_chiro_food_mean)
+```
+
+Add column with trophic level
+```{r, message=FALSE, warning=FALSE}
+M1_spider_chiro_food_scores$trophic_level <- with(M1_spider_chiro_food_scores, ifelse(Organism == "spider", "spider", ifelse(Organism == "chironomids", "chironomids", "basic food source")))
+```
+
+Reorder factors
+```{r, message=FALSE, warning=FALSE}
+M1_spider_chiro_food_scores$treatment <- factor(M1_spider_chiro_food_scores$treatment, levels = c("algae", "oatmeal", "fish food"))
+
+M1_chiro_food_sd$treatment <- factor(M1_chiro_food_sd$treatment, levels = c("algae", "oatmeal", "fish food"))
+
+M1_spider_chiro_food_scores$Organism <- factor(M1_spider_chiro_food_scores$Organism, levels = c("spider", "chironomids", "algae", "oatmeal", "fish food"))
+
+M1_chiro_food_sd$Organism <- factor(M1_chiro_food_sd$Organism, levels = c("spider", "chironomids", "algae", "oatmeal", "fish food"))
+
+M1_spider_chiro_food_scores$trophic_level <- factor(M1_spider_chiro_food_scores$trophic_level, levels = c("spider", "chironomids", "basic food source"))
+```
+
+Rename PUFAs and chose ARA and PUFA contributing for 70 % differences between treatments (see SIMPER) for plotting (otherwise too unclear)
+```{r, message=FALSE, warning=FALSE}
+M1_pufa_scores_all <- M1_pufa_scores
+
+M1_pufa_scores$pufa <- gsub("22:6n-3", "DHA", M1_pufa_scores$pufa) # docosahexaenoic acid
+  
+M1_pufa_scores$pufa <- gsub("20:5n-3", "EPA", M1_pufa_scores$pufa) # eicosapentaenoic acid
+M1_pufa_scores$pufa <- gsub("20:4n-6", "ARA", M1_pufa_scores$pufa) # arachidonic acid
+
+M1_pufa_scores$pufa <- gsub("18:3n-3", "ALA", M1_pufa_scores$pufa) # alpha-linolenic acid
+M1_pufa_scores$pufa <- gsub("18:3n-6", "GLA", M1_pufa_scores$pufa) # gamma-Linolenic acid
+
+M1_pufa_scores$pufa <- gsub("18:2n-6c", "LIN", M1_pufa_scores$pufa) # Linoleic acid
+M1_pufa_scores$pufa <- gsub("18:2n-6t", "LLA", M1_pufa_scores$pufa) # Linolelaidic acid
+
+M1_pufa_scores <- filter(M1_pufa_scores, pufa %in% c("ALA", "LIN", "EPA", "ARA", "GLA", "DHA",  "LLA" ))
+```
+
+#### Plot
+##### Only PUFA contributing to differences between treatments
+Results from SIMPER 
+```{r, message=FALSE, warning=FALSE}
+M1_nmds_plot <- ggplot() +
+  theme_classic() + 
+  theme(legend.title = element_text(size=15), legend.position="right", 
+      plot.title = element_text(size=20), legend.text = element_text(size=15), 
+      axis.text = element_text(size=15), axis.title = element_text(size=15),
+      strip.text = element_text(size=15)) +
+  labs(title = "Experiment 1", 
+       x=expression(NMDS1),
+       y=expression(NMDS2),
+       shape ="trophic level") +
+  guides(color = guide_legend(override.aes = list(size = 5))) +
+  scale_color_manual(values=c("darkgreen", "blue", "cyan3")) +
+  scale_fill_manual(values = c("darkgreen", "blue", "cyan3")) +
+  scale_shape_manual(values=c(21,22,24)) +
+  facet_grid(~ timepoint) +
+  geom_point(data = M1_spider_chiro_food_scores, 
+             aes(x=MDS1, y=MDS2, col = treatment,
+                 shape = trophic_level, fill = treatment),
+             show.legend = TRUE, size=5, stroke = 1.5,
+             alpha = 0.5) +
+  geom_errorbar(data = M1_chiro_food_sd, 
+                aes(x = MDS1, y = MDS2,
+                    xmin=MDS1-sd_MDS1, xmax=MDS1+sd_MDS1,
+                    col = treatment), show.legend = FALSE,
+                size = 1, alpha = 0.5) +
+  geom_errorbar(data = M1_chiro_food_sd, 
+                aes(x = MDS1, y = MDS2,
+                    ymin=MDS2-sd_MDS2, ymax=MDS2+sd_MDS2,
+                    col = treatment), show.legend = FALSE,
+                size = 1, alpha = 0.5) +
+   geom_text_repel(data = M1_pufa_scores, aes(x = MDS1, y = MDS2, label = pufa),
+                  size = 3, max.overlaps = 16, fontface = "bold", alpha = 0.5)
+
+M1_nmds_plot
+```
+
+##### All PUFA
+```{r, message=FALSE, warning=FALSE}
+M1_nmds_plot_all <- ggplot() +
+  theme_classic() + 
+  theme(legend.title = element_text(size=15), legend.position="right", 
+      plot.title = element_text(size=20), legend.text = element_text(size=15), 
+      axis.text = element_text(size=15), axis.title = element_text(size=15),
+      strip.text = element_text(size=15)) +
+  labs(title = "Experiment 1", 
+       x=expression(NMDS1),
+       y=expression(NMDS2),
+       shape ="trophic level") +
+  guides(color = guide_legend(override.aes = list(size = 5))) +
+  scale_color_manual(values=c("darkgreen", "blue", "cyan3")) +
+  scale_fill_manual(values = c("darkgreen", "blue", "cyan3")) +
+  scale_shape_manual(values=c(21,22,24)) +
+  facet_grid(~ timepoint) +
+  geom_point(data = M1_spider_chiro_food_scores, 
+             aes(x=MDS1, y=MDS2, col = treatment,
+                 shape = trophic_level, fill = treatment),
+             show.legend = TRUE, size=5, stroke = 1.5,
+             alpha = 0.5) +
+  geom_errorbar(data = M1_chiro_food_sd, 
+                aes(x = MDS1, y = MDS2,
+                    xmin=MDS1-sd_MDS1, xmax=MDS1+sd_MDS1,
+                    col = treatment), show.legend = FALSE,
+                size = 1, alpha = 0.5) +
+  geom_errorbar(data = M1_chiro_food_sd, 
+                aes(x = MDS1, y = MDS2,
+                    ymin=MDS2-sd_MDS2, ymax=MDS2+sd_MDS2,
+                    col = treatment), show.legend = FALSE,
+                size = 1, alpha = 0.5) +
+ geom_text_repel(data = M1_pufa_scores_all, aes(x = MDS1, y = MDS2, label = pufa),
+                  size = 3, max.overlaps = 16, fontface = "bold", alpha = 0.5)
+
+M1_nmds_plot_all
+```
+
+
+## M2
+
+Get and plot relationship between dimensions and stress
+* red line indicates threshold for good Stress1 value
+* Choose 2 dimensions
+
+```{r, message=FALSE, warning=FALSE}
+#M2_scree.res <- scree_values(M2_pufa_ma, max = 10, dist_meas = "euclidean")
+#saveRDS(M2_scree.res, file = "M2_scree.res.rds")
+M2_scree.res <- readRDS(file = "/Users/katharinafrisch/Nextcloud/Uni/Paper/Microcosm Paper/Submission/Ecology_and_Evolution_submission/2_second_submission/ohler_microcosm/statistics/PUFA_data/M2_scree.res.rds")
+
+par(cex = 1.5, las = 1)
+plot_vec <- as.vector(sapply(1:(length(M2_scree.res) / 10), function(x) rep(x, 10), simplify = "vector"))
+# prerequisite for plotting replicated runs of nmds
+plot(plot_vec, M2_scree.res, ylab = "Stress1", xlab = "dimensions")
+lines(1:(length(M2_scree.res) / 10), as.vector((by(M2_scree.res, plot_vec, mean))))
+abline(h = 0.10, col = "red")
+```
+
+### Run NMDS
+with Euclidean distance
+```{r, message=FALSE, warning=FALSE}
+#M2_nmds <- metaMDS(M2_pufa_ma, k = 2, distance = "euclidean", autotransform = FALSE)
+#saveRDS(M2_nmds, file = "M2_nmds.rds")
+M2_nmds <- readRDS(file = "/Users/katharinafrisch/Nextcloud/Uni/Paper/Microcosm Paper/Submission/Ecology_and_Evolution_submission/2_second_submission/ohler_microcosm/statistics/PUFA_data/M2_nmds.rds")
+```
+
+Shepard diagram
+* Non-metric fit is based on stress and calculated as R^2 = sqrt(1- S^2)
+* Linear R^2 = explained variation of regression of observed distances against ordination distances
+* Looks okay
+```{r, message=FALSE, warning=FALSE}
+stressplot(M2_nmds)
+```
+
+### Plot NMDS
+#### Prepare data for plotting
+```{r, message=FALSE, warning=FALSE}
+M2_pufa_scores <- as.data.frame(M2_nmds$species)
+M2_pufa_scores$pufa <- rownames(M2_pufa_scores)
+
+M2_sample_scores <-as.data.frame(M2_nmds$points)
+M2_sample_scores <- cbind(M2_sample_scores, M2_treatment)
+```
+
+Rename some variables
+```{r, message=FALSE, warning=FALSE}
+M2_sample_scores$treatment <- gsub("fishfood", "fish food", M2_sample_scores$treatment)
+M2_sample_scores$Organism <- gsub("fishfood", "fish food", M2_sample_scores$Organism)
+M2_sample_scores$Organism <- gsub("chiro", "chironomids", M2_sample_scores$Organism)
+M2_sample_scores$timepoint <- gsub("t0", "0 days", M2_sample_scores$timepoint)
+M2_sample_scores$timepoint <- gsub("t2", "14 days", M2_sample_scores$timepoint)
+M2_sample_scores$timepoint <- gsub("t3", "21 days", M2_sample_scores$timepoint)
+```
+
+Get single spider scores and mean and sd of chiro and food source scores
+```{r, message=FALSE, warning=FALSE}
+M2_spider_scores <- filter(M2_sample_scores, Organism == "spider")
+
+M2_chiro_food <- filter(M2_sample_scores, Organism != "spider")
+M2_chiro_food_mean <- ddply(M2_chiro_food, c("Organism", "treatment", "timepoint"),
+                              summarise, MDS1 = mean(MDS1), MDS2 = mean(MDS2))
+
+M2_chiro_food_sd <- filter(M2_sample_scores, Organism != "spider")
+M2_chiro_food_sd <- ddply(M2_chiro_food_sd, c("Organism", "treatment", "timepoint"),
+                              summarise, sd_MDS1 = sd(MDS1),sd_MDS2 = sd(MDS2))
+
+M2_chiro_food_sd <- left_join(M2_chiro_food_mean, M2_chiro_food_sd, 
+                           by = c("Organism", "treatment", "timepoint"))
+
+M2_spider_chiro_food_scores <- rbind(M2_spider_scores, M2_chiro_food_mean)
+```
+
+Add column with trophic level
+```{r, message=FALSE, warning=FALSE}
+M2_spider_chiro_food_scores$trophic_level <- with(M2_spider_chiro_food_scores, ifelse(Organism == "spider", "spider", ifelse(Organism == "chironomids", "chironomids", "basic food source")))
+```
+
+Reorder factors
+```{r, message=FALSE, warning=FALSE}
+M2_spider_chiro_food_scores$treatment <- factor(M2_spider_chiro_food_scores$treatment, levels = c("leaves", "oatmeal", "fish food"))
+
+M2_chiro_food_sd$treatment <- factor(M2_chiro_food_sd$treatment, levels = c("leaves", "oatmeal", "fish food"))
+
+M2_spider_chiro_food_scores$Organism <- factor(M2_spider_chiro_food_scores$Organism, levels = c("spider", "chironomids", "leaves", "oatmeal", "fish food"))
+
+M2_chiro_food_sd$Organism <- factor(M2_chiro_food_sd$Organism, levels = c("spider", "chironomids", "leaves", "oatmeal", "fish food"))
+
+M2_spider_chiro_food_scores$trophic_level <- factor(M2_spider_chiro_food_scores$trophic_level, levels = c("spider", "chironomids", "basic food source"))
+```
+
+Rename PUFAs and chose ARA and PUFA contributing for 70 % differences between treatments (see SIMPER) for plotting (otherwise too unclear)
+```{r, message=FALSE, warning=FALSE}
+M2_pufa_scores_all <- M2_pufa_scores
+
+M2_pufa_scores$pufa <- gsub("22:6n-3", "DHA", M2_pufa_scores$pufa) # docosahexaenoic acid
+  
+M2_pufa_scores$pufa <- gsub("20:5n-3", "EPA", M2_pufa_scores$pufa) # eicosapentaenoic acid
+M2_pufa_scores$pufa <- gsub("20:4n-6", "ARA", M2_pufa_scores$pufa) # arachidonic acid
+
+M2_pufa_scores$pufa <- gsub("18:3n-3", "ALA", M2_pufa_scores$pufa) # alpha-linolenic acid
+M2_pufa_scores$pufa <- gsub("18:3n-6", "GLA", M2_pufa_scores$pufa) # gamma-Linolenic acid
+
+M2_pufa_scores$pufa <- gsub("18:2n-6c", "LIN", M2_pufa_scores$pufa) # Linoleic acid
+M2_pufa_scores$pufa <- gsub("18:2n-6t", "LLA", M2_pufa_scores$pufa) # Linolelaidic acid
+
+M2_pufa_scores <- filter(M2_pufa_scores, pufa %in% c("ALA", "LIN", "EPA", "ARA", "GLA", "DHA",  "LLA" ))
+```
+
+#### Plot
+##### Only Only PUFA contributing to differences between treatments
+```{r, message=FALSE, warning=FALSE}
+M2_nmds_plot <- ggplot() +
+  theme_classic() + 
+  theme(legend.title = element_text(size=15), legend.position="right", 
+      plot.title = element_text(size=20), legend.text = element_text(size=15), 
+      axis.text = element_text(size=15), axis.title = element_text(size=15),
+      strip.text = element_text(size=15)) +
+  labs(title = "Experiment 2", 
+       x = expression(NMDS1),
+       y = expression(NMDS2),
+       shape = "trophic level") +
+  guides(color = guide_legend(override.aes = list(size = 5))) +
+  scale_color_manual(values=c("darkolivegreen3", "blue", "cyan3")) +
+  scale_fill_manual(values = c("darkolivegreen3", "blue", "cyan3")) +
+  scale_shape_manual(values=c(21, 22, 24)) +
+  facet_grid(~ timepoint) +
+  geom_point(data = M2_spider_chiro_food_scores, 
+             aes(x=MDS1, y=MDS2, col = treatment,
+                 shape = trophic_level, fill = treatment),
+             show.legend = TRUE, size=5, stroke = 1.5,
+             alpha = 0.5) +
+  geom_errorbar(data = M2_chiro_food_sd, 
+                aes(x = MDS1, y = MDS2, 
+                    xmin=MDS1-sd_MDS1, xmax=MDS1+sd_MDS1,
+                    col = treatment), show.legend = FALSE,
+                size = 1, alpha = 0.5) +
+  geom_errorbar(data = M2_chiro_food_sd, 
+                aes(x = MDS1, y = MDS2,
+                    ymin=MDS2-sd_MDS2, ymax=MDS2+sd_MDS2,
+                    col = treatment), show.legend = FALSE,
+                size = 1, alpha = 0.5) +
+ geom_text_repel(data = M2_pufa_scores, aes(x = MDS1, y = MDS2, label = pufa),
+                  size = 3, max.overlaps = 16, fontface = "bold", alpha = 0.5)
+
+M2_nmds_plot
+```
+
+##### All PUFA
+```{r, message=FALSE, warning=FALSE}
+M2_nmds_plot_all <- ggplot() +
+  theme_classic() + 
+  theme(legend.title = element_text(size=15), legend.position="right", 
+      plot.title = element_text(size=20), legend.text = element_text(size=15), 
+      axis.text = element_text(size=15), axis.title = element_text(size=15),
+      strip.text = element_text(size=15)) +
+  labs(title = "Experiment 2", 
+       x = expression(NMDS1),
+       y = expression(NMDS2),
+       shape = "trophic level") +
+  guides(color = guide_legend(override.aes = list(size = 5))) +
+  scale_color_manual(values=c("darkolivegreen3", "blue", "cyan3")) +
+  scale_fill_manual(values = c("darkolivegreen3", "blue", "cyan3")) +
+  scale_shape_manual(values=c(21, 22, 24)) +
+  facet_grid(~ timepoint) +
+  geom_point(data = M2_spider_chiro_food_scores, 
+             aes(x=MDS1, y=MDS2, col = treatment,
+                 shape = trophic_level, fill = treatment),
+             show.legend = TRUE, size=5, stroke = 1.5,
+             alpha = 0.5) +
+  geom_errorbar(data = M2_chiro_food_sd, 
+                aes(x = MDS1, y = MDS2, 
+                    xmin=MDS1-sd_MDS1, xmax=MDS1+sd_MDS1,
+                    col = treatment), show.legend = FALSE,
+                size = 1, alpha = 0.5) +
+  geom_errorbar(data = M2_chiro_food_sd, 
+                aes(x = MDS1, y = MDS2,
+                    ymin=MDS2-sd_MDS2, ymax=MDS2+sd_MDS2,
+                    col = treatment), show.legend = FALSE,
+                size = 1, alpha = 0.5) +
+ geom_text_repel(data = M2_pufa_scores_all, aes(x = MDS1, y = MDS2, label = pufa),
+                  size = 3, max.overlaps = 16, fontface = "bold", alpha = 0.5)
+
+M2_nmds_plot_all
+```
+
+## Save NMDS plots
+```{r, message=FALSE, warning=FALSE}
+NMDS_plot <- ggarrange(M1_nmds_plot, M2_nmds_plot,
+                  labels = c("A", "B"),
+                  ncol = 1, nrow = 2)
+
+#png(filename="NMDS_plot.png", width=15, height=10, units="in", res=300)
+NMDS_plot
+#dev.off()
+
+NMDS_plot_all <- ggarrange(M1_nmds_plot_all, M2_nmds_plot_all,
+                  labels = c("A", "B"),
+                  ncol = 1, nrow = 2)
+
+#png(filename="NMDS_plot_all.png", width=15, height=10, units="in", res=300)
+NMDS_plot_all
+#dev.off()
+```
+
+# ANOSIM
+## M1
+### Spider within same time point: compare treatments
+```{r, message=FALSE, warning=FALSE}
+spider_t4 <- which(M1_treatment$timepoint == "t4" & M1_treatment$Organism == "spider")
+set.seed(222)
+M1_anosim_spider_t4 <- anosim(M1_pufa_ma[spider_t4,], M1_treatment[spider_t4,]$treatment, distance = "euclidean")
+summary(M1_anosim_spider_t4)
+
+spider_t7 <- which(M1_treatment$timepoint == "t7" & M1_treatment$Organism == "spider")
+set.seed(222)
+M1_anosim_spider_t7 <- anosim(M1_pufa_ma[spider_t7,], M1_treatment[spider_t7,]$treatment, distance = "euclidean")
+summary(M1_anosim_spider_t7)
+```
+
+### Spider within same treatment and start spiders: compare time points
+```{r, message=FALSE, warning=FALSE}
+M1_spider_algae_time <- which(M1_treatment$Organism == "spider" & M1_treatment$treatment %in% c("algae"))
+
+set.seed(222)
+M1_anosim_spider_algae_time <- anosim(M1_pufa_ma[M1_spider_algae_time,], M1_treatment[M1_spider_algae_time,]$timepoint, distance = "euclidean")
+summary(M1_anosim_spider_algae_time)
+
+M1_spider_oatmeal_time <- which(M1_treatment$Organism == "spider" & M1_treatment$treatment %in% c("oatmeal"))
+
+set.seed(222)
+M1_anosim_spider_oatmeal_time <- anosim(M1_pufa_ma[M1_spider_oatmeal_time,], M1_treatment[M1_spider_oatmeal_time,]$timepoint, distance = "euclidean")
+summary(M1_anosim_spider_oatmeal_time)
+
+M1_spider_fishfood_time <- which(M1_treatment$Organism == "spider" & M1_treatment$treatment %in% c("fishfood"))
+
+set.seed(222)
+M1_anosim_spider_fishfood_time <- anosim(M1_pufa_ma[M1_spider_fishfood_time,], M1_treatment[M1_spider_fishfood_time,]$timepoint, distance = "euclidean")
+summary(M1_anosim_spider_fishfood_time)
+```
+
+### Chiro within same time point: compare treatments
+```{r, message=FALSE, warning=FALSE}
+chiro_t4 <- which(M1_treatment$timepoint == "t4" & M1_treatment$Organism == "chiro")
+set.seed(222)
+M1_anosim_chiro_t4 <- anosim(M1_pufa_ma[chiro_t4,], M1_treatment[chiro_t4,]$treatment, distance = "euclidean")
+summary(M1_anosim_chiro_t4)
+
+chiro_t7 <- which(M1_treatment$timepoint == "t7" & M1_treatment$Organism == "chiro")
+set.seed(222)
+M1_anosim_chiro_t7 <- anosim(M1_pufa_ma[chiro_t7,], M1_treatment[chiro_t7,]$treatment, distance = "euclidean")
+summary(M1_anosim_chiro_t7)
+```
+
+### Food source within same time point: compare treatments
+```{r, message=FALSE, warning=FALSE}
+food_t4 <- which(M1_treatment$timepoint == "t4" & M1_treatment$Organism %in% c("algae", "oatmeal", "fishfood"))
+
+set.seed(222)
+M1_anosim_food_t4 <- anosim(M1_pufa_ma[food_t4,], M1_treatment[food_t4,]$treatment, distance = "euclidean")
+summary(M1_anosim_food_t4)
+
+food_t7 <- which(M1_treatment$timepoint == "t7" & M1_treatment$Organism %in% c("algae", "oatmeal", "fishfood"))
+
+set.seed(222)
+M1_anosim_food_t7 <- anosim(M1_pufa_ma[food_t7,], M1_treatment[food_t7,]$treatment, distance = "euclidean")
+summary(M1_anosim_food_t7)
+```
+
+### Extract R and p-values
+```{r, message=FALSE, warning=FALSE}
+M1_anosim_name <- c("M1_anosim_spider_t4", "M1_anosim_spider_t7",
+                    "M1_anosim_spider_algae_time", "M1_anosim_spider_oatmeal_time",
+                    "M1_anosim_spider_fishfood_time", "M1_anosim_chiro_t4",
+                    "M1_anosim_chiro_t7", "M1_anosim_food_t4", "M1_anosim_food_t7")
+
+M1_anosim_p <- rbind(M1_anosim_spider_t4$signif, M1_anosim_spider_t7$signif,
+                 M1_anosim_spider_algae_time$signif, M1_anosim_spider_oatmeal_time$signif,
+                 M1_anosim_spider_fishfood_time$signif, M1_anosim_chiro_t4$signif,
+                 M1_anosim_chiro_t7$signif, M1_anosim_food_t4$signif,
+                 M1_anosim_food_t7$signif)
+
+M1_anosim_R <- rbind(M1_anosim_spider_t4$statistic, M1_anosim_spider_t7$statistic,
+                 M1_anosim_spider_algae_time$statistic,
+                 M1_anosim_spider_oatmeal_time$statistic,
+                 M1_anosim_spider_fishfood_time$statistic, M1_anosim_chiro_t4$statistic,
+                 M1_anosim_chiro_t7$statistic, M1_anosim_food_t4$statistic,
+                 M1_anosim_food_t7$statistic)
+
+M1_anosim <- as.data.frame(cbind(M1_anosim_name, M1_anosim_p, M1_anosim_R))
+
+names(M1_anosim)[2] <- "p_value"
+names(M1_anosim)[3] <- "R"
+```
+
+### Adjust p-values and save output
+```{r, message=FALSE, warning=FALSE}
+M1_anosim$p_value_adjusted <- p.adjust(M1_anosim$p_value, method = "hochberg")
+
+#write.csv(M1_anosim, "M1_anosim.csv", row.names = FALSE)
+```
+
+## M2
+### Spider within same time point: compare treatments
+```{r, message=FALSE, warning=FALSE}
+spider_t2 <- which(M2_treatment$timepoint == "t2" & M2_treatment$Organism == "spider")
+set.seed(222)
+M2_anosim_spider_t2 <- anosim(M2_pufa_ma[spider_t2,], M2_treatment[spider_t2,]$treatment, distance = "euclidean")
+summary(M2_anosim_spider_t2)
+
+spider_t3 <- which(M2_treatment$timepoint == "t3" & M2_treatment$Organism == "spider")
+set.seed(222)
+M2_anosim_spider_t3 <- anosim(M2_pufa_ma[spider_t3,], M2_treatment[spider_t3,]$treatment, distance = "euclidean")
+summary(M2_anosim_spider_t3)
+```
+
+### Spider within same treatment and start spiders: compare time points
+```{r, message=FALSE, warning=FALSE}
+M2_spider_leaves_time <- which(M2_treatment$Organism == "spider" & M2_treatment$treatment %in% c("leaves"))
+
+set.seed(222)
+M2_anosim_spider_leaves_time <- anosim(M2_pufa_ma[M2_spider_leaves_time,], M2_treatment[M2_spider_leaves_time,]$timepoint, distance = "euclidean")
+summary(M2_anosim_spider_leaves_time)
+
+M2_spider_oatmeal_time <- which(M2_treatment$Organism == "spider" & M2_treatment$treatment %in% c("oatmeal"))
+
+set.seed(222)
+M2_anosim_spider_oatmeal_time <- anosim(M2_pufa_ma[M2_spider_oatmeal_time,], M2_treatment[M2_spider_oatmeal_time,]$timepoint, distance = "euclidean")
+summary(M2_anosim_spider_oatmeal_time)
+
+M2_spider_fishfood_time <- which(M2_treatment$Organism == "spider" & M2_treatment$treatment %in% c("fishfood"))
+
+set.seed(222)
+M2_anosim_spider_fishfood_time <- anosim(M2_pufa_ma[M2_spider_fishfood_time,], M2_treatment[M2_spider_fishfood_time,]$timepoint, distance = "euclidean")
+summary(M2_anosim_spider_fishfood_time)
+```
+
+### Chiro within same time point: compare treatments
+```{r, message=FALSE, warning=FALSE}
+chiro_t2 <- which(M2_treatment$timepoint == "t2" & M2_treatment$Organism == "chiro")
+set.seed(222)
+M2_anosim_chiro_t2 <- anosim(M2_pufa_ma[chiro_t2,], M2_treatment[chiro_t2,]$treatment, distance = "euclidean")
+summary(M2_anosim_chiro_t2)
+
+chiro_t3 <- which(M2_treatment$timepoint == "t3" & M2_treatment$Organism == "chiro")
+set.seed(222)
+M2_anosim_chiro_t3 <- anosim(M2_pufa_ma[chiro_t3,], M2_treatment[chiro_t3,]$treatment, distance = "euclidean")
+summary(M2_anosim_chiro_t3)
+```
+
+### Food source within same time point: compare treatments
+```{r, message=FALSE, warning=FALSE}
+food_t2 <- which(M2_treatment$timepoint == "t2" & M2_treatment$Organism %in% c("leaves", "oatmeal", "fishfood"))
+
+set.seed(222)
+M2_anosim_food_t2 <- anosim(M2_pufa_ma[food_t2,], M2_treatment[food_t2,]$treatment, distance = "euclidean")
+summary(M2_anosim_food_t2)
+
+food_t3 <- which(M2_treatment$timepoint == "t3" & M2_treatment$Organism %in% c("leaves", "oatmeal", "fishfood"))
+
+set.seed(222)
+M2_anosim_food_t3 <- anosim(M2_pufa_ma[food_t3,], M2_treatment[food_t3,]$treatment, distance = "euclidean")
+summary(M2_anosim_food_t3)
+```
+
+### Extract R and p-values
+```{r, message=FALSE, warning=FALSE}
+M2_anosim_name <- c("M2_anosim_spider_t2", "M2_anosim_spider_t3",
+                    "M2_anosim_spider_leaves_time", "M2_anosim_spider_oatmeal_time",
+                    "M2_anosim_spider_fishfood_time", "M2_anosim_chiro_t2",
+                    "M2_anosim_chiro_t3", "M2_anosim_food_t2", "M2_anosim_food_t3")
+
+M2_anosim_p <- rbind(M2_anosim_spider_t2$signif, M2_anosim_spider_t3$signif,
+                 M2_anosim_spider_leaves_time$signif, M2_anosim_spider_oatmeal_time$signif,
+                 M2_anosim_spider_fishfood_time$signif, M2_anosim_chiro_t2$signif,
+                 M2_anosim_chiro_t3$signif, M2_anosim_food_t2$signif,
+                 M2_anosim_food_t3$signif)
+
+M2_anosim_R <- rbind(M2_anosim_spider_t2$statistic, M2_anosim_spider_t3$statistic,
+                 M2_anosim_spider_leaves_time$statistic,
+                 M2_anosim_spider_oatmeal_time$statistic,
+                 M2_anosim_spider_fishfood_time$statistic, M2_anosim_chiro_t2$statistic,
+                 M2_anosim_chiro_t3$statistic, M2_anosim_food_t2$statistic,
+                 M2_anosim_food_t3$statistic)
+
+M2_anosim <- as.data.frame(cbind(M2_anosim_name, M2_anosim_p, M2_anosim_R))
+
+names(M2_anosim)[2] <- "p_value"
+names(M2_anosim)[3] <- "R"
+```
+
+### Adjust p-values and save output
+```{r, message=FALSE, warning=FALSE}
+M2_anosim$p_value_adjusted <- p.adjust(M2_anosim$p_value, method = "hochberg")
+
+#write.csv(M2_anosim, "M2_anosim.csv", row.names = FALSE)
+```
+
+# SIMPER
+
+* SIMPER analysis, where treatment was significant in ANOSIM
+* In first experiment treatment always significant
+* In second experiment treatment significant för chiros and food sources, but not for spiders
+
+## M1
+### Spiders
+```{r, message=FALSE, warning=FALSE}
+M1_simper_spider_t4 <- simper(M1_pufa_ma[spider_t4,], 
+                       group =  M1_treatment[spider_t4,]$treatment)
+
+summary(M1_simper_spider_t4)
+
+
+M1_simper_spider_t7 <- simper(M1_pufa_ma[spider_t7,], 
+                       group =  M1_treatment[spider_t7,]$treatment)
+
+summary(M1_simper_spider_t7)
+```
+
+### Chiro
+```{r, message=FALSE, warning=FALSE}
+M1_simper_chiro_t4 <- simper(M1_pufa_ma[chiro_t4,], 
+                       group =  M1_treatment[chiro_t4,]$treatment)
+
+summary(M1_simper_chiro_t4)
+
+M1_simper_chiro_t7 <- simper(M1_pufa_ma[chiro_t7,], 
+                       group =  M1_treatment[chiro_t7,]$treatment)
+
+summary(M1_simper_chiro_t7)
+```
+
+### Food source
+```{r, message=FALSE, warning=FALSE}
+M1_simper_food_t4 <- simper(M1_pufa_ma[food_t4,], 
+                       group =  M1_treatment[food_t4,]$treatment)
+
+summary(M1_simper_food_t4)
+
+M1_simper_food_t7 <- simper(M1_pufa_ma[food_t7,], 
+                       group =  M1_treatment[food_t7,]$treatment)
+
+summary(M1_simper_food_t7)
+```
+
+## M2
+### Chiro
+```{r, message=FALSE, warning=FALSE}
+M2_simper_chiro_t2 <- simper(M2_pufa_ma[chiro_t2,], 
+                       group =  M2_treatment[chiro_t2,]$treatment)
+
+summary(M2_simper_chiro_t2)
+
+M2_simper_chiro_t3 <- simper(M2_pufa_ma[chiro_t3,], 
+                       group =  M2_treatment[chiro_t3,]$treatment)
+
+summary(M2_simper_chiro_t3)
+```
+
+### Food source
+```{r, message=FALSE, warning=FALSE}
+M2_simper_food_t2 <- simper(M2_pufa_ma[food_t2,], 
+                       group =  M2_treatment[food_t2,]$treatment)
+
+summary(M2_simper_food_t2)
+
+M2_simper_food_t3 <- simper(M2_pufa_ma[food_t3,], 
+                       group =  M2_treatment[food_t3,]$treatment)
+
+summary(M2_simper_food_t3)
+```
+
+## Save output
+Get summary
+```{r, message=FALSE, warning=FALSE}
+M1_simper_spider_t4_summary <- summary(M1_simper_spider_t4)
+M1_simper_spider_t7_summary <- summary(M1_simper_spider_t7)
+M1_simper_chiro_t4_summary <- summary(M1_simper_chiro_t4)
+M1_simper_chiro_t7_summary <- summary(M1_simper_chiro_t7)
+M1_simper_food_t4_summary <- summary(M1_simper_food_t4)
+M1_simper_food_t7_summary <- summary(M1_simper_food_t7)
+
+M2_simper_chiro_t2_summary <- summary(M2_simper_chiro_t2)
+M2_simper_chiro_t3_summary <- summary(M2_simper_chiro_t3)
+M2_simper_food_t2_summary <- summary(M2_simper_food_t2)
+M2_simper_food_t3_summary <- summary(M2_simper_food_t3)
+```
+
+Add time point to lists
+```{r, message=FALSE, warning=FALSE}
+  for (i in c(1:3))
+{
+M1_simper_spider_t4_summary[[i]]$Time_point <- "23 days"
+  }
+
+  for (i in c(1:3))
+{
+M1_simper_chiro_t4_summary[[i]]$Time_point <- "23 days"
+  }
+
+  for (i in c(1:3))
+{
+M1_simper_food_t4_summary[[i]]$Time_point <- "23 days"
+  }
+
+  for (i in c(1:3))
+{
+M1_simper_spider_t7_summary[[i]]$Time_point <- "44 days"
+  }
+
+  for (i in c(1:3))
+{
+M1_simper_chiro_t7_summary[[i]]$Time_point <- "44 days"
+  }
+
+  for (i in c(1:3))
+{
+M1_simper_food_t7_summary[[i]]$Time_point <- "44 days"
+  }
+
+
+  for (i in c(1:3))
+{
+M2_simper_chiro_t2_summary[[i]]$Time_point <- "14 days"
+  }
+
+  for (i in c(1:3))
+{
+M2_simper_food_t2_summary[[i]]$Time_point <- "14 days"
+  }
+
+  for (i in c(1:3))
+{
+M2_simper_chiro_t3_summary[[i]]$Time_point <- "21 days"
+  }
+
+  for (i in c(1:3))
+{
+M2_simper_food_t3_summary[[i]]$Time_point <- "21 days"
+  }
+```
+
+Add trophic level to lists
+```{r, message=FALSE, warning=FALSE}
+  for (i in c(1:3))
+{
+M1_simper_spider_t4_summary[[i]]$Trophic_level <- "spiders"
+  }
+
+  for (i in c(1:3))
+{
+M1_simper_chiro_t4_summary[[i]]$Trophic_level <- "chironomids"
+  }
+
+  for (i in c(1:3))
+{
+M1_simper_food_t4_summary[[i]]$Trophic_level <- "basic food sources"
+  }
+
+  for (i in c(1:3))
+{
+M1_simper_spider_t7_summary[[i]]$Trophic_level <- "spiders"
+  }
+
+  for (i in c(1:3))
+{
+M1_simper_chiro_t7_summary[[i]]$Trophic_level <- "chironomids"
+  }
+
+  for (i in c(1:3))
+{
+M1_simper_food_t7_summary[[i]]$Trophic_level <- "basic food sources"
+  }
+
+
+  for (i in c(1:3))
+{
+M2_simper_chiro_t2_summary[[i]]$Trophic_level <- "chironomids"
+  }
+
+  for (i in c(1:3))
+{
+M2_simper_food_t2_summary[[i]]$Trophic_level <- "basic food sources"
+  }
+
+  for (i in c(1:3))
+{
+M2_simper_chiro_t3_summary[[i]]$Trophic_level <- "chironomids"
+  }
+
+  for (i in c(1:3))
+{
+M2_simper_food_t3_summary[[i]]$Trophic_level <- "basic food sources"
+  }
+```
+
+Rownames as column
+```{r, message=FALSE, warning=FALSE}
+for (i in c(1:3))
+{
+M1_simper_spider_t4_summary[[i]]$PUFA <- rownames(M1_simper_spider_t4_summary[[i]]) 
+  }
+
+  for (i in c(1:3))
+{
+M1_simper_spider_t7_summary[[i]]$PUFA <- rownames(M1_simper_spider_t7_summary[[i]]) 
+  }
+
+  for (i in c(1:3))
+{
+M1_simper_chiro_t4_summary[[i]]$PUFA <- rownames(M1_simper_chiro_t4_summary[[i]]) 
+  }
+
+  for (i in c(1:3))
+{
+M1_simper_chiro_t7_summary[[i]]$PUFA <- rownames(M1_simper_chiro_t7_summary[[i]])
+  }
+
+  for (i in c(1:3))
+{
+M1_simper_food_t4_summary[[i]]$PUFA <- rownames(M1_simper_food_t4_summary[[i]]) 
+  }
+
+  for (i in c(1:3))
+{
+M1_simper_food_t7_summary[[i]]$PUFA <- rownames(M1_simper_food_t7_summary[[i]])
+  }
+
+  for (i in c(1:3))
+{
+M2_simper_chiro_t2_summary[[i]]$PUFA <- rownames(M2_simper_chiro_t2_summary[[i]]) 
+  }
+
+  for (i in c(1:3))
+{
+M2_simper_chiro_t3_summary[[i]]$PUFA <- rownames(M2_simper_chiro_t3_summary[[i]])
+  }
+
+  for (i in c(1:3))
+{
+M2_simper_food_t2_summary[[i]]$PUFA <- rownames(M2_simper_food_t2_summary[[i]]) 
+  }
+
+  for (i in c(1:3))
+{
+M2_simper_food_t3_summary[[i]]$PUFA <- rownames(M2_simper_food_t3_summary[[i]])
+  }
+```
+
+Listnames as column
+```{r, message=FALSE, warning=FALSE}
+for (i in c(1:3))
+{
+M1_simper_spider_t4_summary[[i]]$Contrast <-names(M1_simper_spider_t4_summary[i]) 
+  }
+
+for (i in c(1:3))
+{
+M1_simper_spider_t7_summary[[i]]$Contrast <-names(M1_simper_spider_t7_summary[i]) 
+}
+
+  for (i in c(1:3))
+{
+M1_simper_chiro_t4_summary[[i]]$Contrast <- names(M1_simper_chiro_t4_summary[i]) 
+  }
+
+  for (i in c(1:3))
+{
+M1_simper_chiro_t7_summary[[i]]$Contrast <- names(M1_simper_chiro_t7_summary[i])
+  }
+
+  for (i in c(1:3))
+{
+M1_simper_food_t4_summary[[i]]$Contrast <- names(M1_simper_food_t4_summary[i]) 
+  }
+
+  for (i in c(1:3))
+{
+M1_simper_food_t7_summary[[i]]$Contrast <- names(M1_simper_food_t7_summary[i])
+  }
+
+  for (i in c(1:3))
+{
+M2_simper_chiro_t2_summary[[i]]$Contrast <- names(M2_simper_chiro_t2_summary[i]) 
+  }
+
+  for (i in c(1:3))
+{
+M2_simper_chiro_t3_summary[[i]]$Contrast <- names(M2_simper_chiro_t3_summary[i])
+  }
+
+  for (i in c(1:3))
+{
+M2_simper_food_t2_summary[[i]]$Contrast <- names(M2_simper_food_t2_summary[i]) 
+  }
+
+  for (i in c(1:3))
+{
+M2_simper_food_t3_summary[[i]]$Contrast <- names(M2_simper_food_t3_summary[i])
+  }
+
+```
+
+Chose cumsum nearest to 70 % (0.7)
+```{r, message=FALSE, warning=FALSE}
+closest_greater <-  function(x, viable_numbers) {
+  min(viable_numbers[viable_numbers >= x])
+}
+
+  for (i in c(1:3))
+{
+M1_simper_spider_t4_summary[[i]] <- filter(M1_simper_spider_t4_summary[[i]], 
+                    cumsum <= closest_greater(0.7, M1_simper_spider_t4_summary[[i]]$cumsum))
+  }
+
+  for (i in c(1:3))
+{
+M1_simper_spider_t7_summary[[i]] <- filter(M1_simper_spider_t7_summary[[i]], 
+                    cumsum <= closest_greater(0.7, M1_simper_spider_t7_summary[[i]]$cumsum))
+  }
+
+  for (i in c(1:3))
+{
+M1_simper_chiro_t4_summary[[i]] <- filter(M1_simper_chiro_t4_summary[[i]], 
+                    cumsum <= closest_greater(0.7,M1_simper_chiro_t4_summary[[i]]$cumsum))
+  }   
+    
+  for (i in c(1:3))
+{
+M1_simper_chiro_t7_summary[[i]] <- filter(M1_simper_chiro_t7_summary[[i]], 
+                    cumsum <= closest_greater(0.7, M1_simper_chiro_t7_summary[[i]]$cumsum))
+  }
+
+  for (i in c(1:3))
+{
+M1_simper_food_t4_summary[[i]] <- filter(M1_simper_food_t4_summary[[i]], 
+                    cumsum <= closest_greater(0.7, M1_simper_food_t4_summary[[i]]$cumsum))
+  }
+
+  for (i in c(1:3))
+{
+M1_simper_food_t7_summary[[i]] <- filter(M1_simper_food_t7_summary[[i]], 
+                    cumsum <= closest_greater(0.7, M1_simper_food_t7_summary[[i]]$cumsum))
+  }
+
+for (i in c(1:3))
+{
+M2_simper_chiro_t2_summary[[i]] <- filter(M2_simper_chiro_t2_summary[[i]], 
+                    cumsum <= closest_greater(0.7, M2_simper_chiro_t2_summary[[i]]$cumsum))
+  }
+
+  for (i in c(1:3))
+{
+M2_simper_chiro_t3_summary[[i]] <- filter(M2_simper_chiro_t3_summary[[i]], 
+                    cumsum <= closest_greater(0.7, M2_simper_chiro_t3_summary[[i]]$cumsum))
+  }
+
+  for (i in c(1:3))
+{
+M2_simper_food_t2_summary[[i]] <- filter(M2_simper_food_t2_summary[[i]], 
+                    cumsum <= closest_greater(0.7, M2_simper_food_t2_summary[[i]]$cumsum))
+  }
+
+  for (i in c(1:3))
+{
+M2_simper_food_t3_summary[[i]] <- filter(M2_simper_food_t3_summary[[i]], 
+                    cumsum <= closest_greater(0.7, M2_simper_food_t3_summary[[i]]$cumsum))
+  }
+```
+
+Lists to data frames
+```{r, message=FALSE, warning=FALSE}
+M1_simper_spider_t4_summary <- do.call(rbind, M1_simper_spider_t4_summary) 
+M1_simper_spider_t7_summary <- do.call(rbind, M1_simper_spider_t7_summary) 
+M1_simper_chiro_t4_summary <- do.call(rbind, M1_simper_chiro_t4_summary) 
+M1_simper_chiro_t7_summary <- do.call(rbind, M1_simper_chiro_t7_summary)
+M1_simper_food_t4_summary <- do.call(rbind, M1_simper_food_t4_summary) 
+M1_simper_food_t7_summary <- do.call(rbind, M1_simper_food_t7_summary)
+
+M2_simper_chiro_t2_summary <- do.call(rbind, M2_simper_chiro_t2_summary) 
+M2_simper_chiro_t3_summary <- do.call(rbind, M2_simper_chiro_t3_summary)
+M2_simper_food_t2_summary <- do.call(rbind, M2_simper_food_t2_summary) 
+M2_simper_food_t3_summary <- do.call(rbind, M2_simper_food_t3_summary)
+```
+
+Bind summary data frames
+```{r, message=FALSE, warning=FALSE}
+simper_summary <- rbind(M1_simper_spider_t4_summary, M1_simper_spider_t7_summary,
+                        M1_simper_chiro_t4_summary, M1_simper_chiro_t7_summary,
+                        M1_simper_food_t4_summary, M1_simper_food_t7_summary,
+                        M2_simper_chiro_t2_summary, M2_simper_chiro_t3_summary,
+                        M2_simper_food_t2_summary, M2_simper_food_t3_summary)
+```
+
+Add column experiment
+```{r, message=FALSE, warning=FALSE}
+simper_summary$Experiment <- with(simper_summary, 
+                                  ifelse(Time_point == "44 days", "1",
+                                  ifelse(Time_point == "23 days", "1",
+                                  2)))
+```
+
+Put column in other order
+```{r, message=FALSE, warning=FALSE}
+simper_summary <- select(simper_summary, 
+                         c("Experiment", "Trophic_level", "Time_point",
+                           "Contrast","PUFA", "average", "sd", 
+                           "ratio", "ava", "avb", "cumsum" ))
+```
+
+Rename columns
+```{r, message=FALSE, warning=FALSE}
+colnames_simper_summary <- c("Experiment","Trophic level", "Time point", 
+                             "Contrast", "PUFA", "Average", 
+                           "Standard deviation", "Ratio", 
+                           "Average a", "Average b", "Cumulative contribution")
+names(simper_summary) <- colnames_simper_summary
+```
+
+Round 2 digits
+```{r, message=FALSE, warning=FALSE}
+simper_summary[,6:11] <- round(simper_summary[,6:11], digits = 2)
+```
+
+Rename PUFA
+```{r, message=FALSE, warning=FALSE}
+
+simper_summary$PUFA <- gsub("22:6n-3", "DHA", simper_summary$PUFA) # docosahexaenoic acid
+  
+simper_summary$PUFA <- gsub("20:5n-3", "EPA", simper_summary$PUFA) # eicosapentaenoic acid
+simper_summary$PUFA <- gsub("20:4n-6", "ARA", simper_summary$PUFA) # arachidonic acid
+
+simper_summary$PUFA <- gsub("18:3n-3", "ALA", simper_summary$PUFA) # alpha-linolenic acid
+simper_summary$PUFA <- gsub("18:3n-6", "GLA", simper_summary$PUFA) # gamma-Linolenic acid
+
+simper_summary$PUFA <- gsub("18:2n-6c", "LIN", simper_summary$PUFA) # Linoleic acid
+simper_summary$PUFA <- gsub("18:2n-6t", "LLA", simper_summary$PUFA) # Linolelaidic acid
+```
+
+Save csv
+```{r, message=FALSE, warning=FALSE}
+#write.csv(simper_summary, file = "simper_summary.csv", row.names = FALSE)
+```
+
+Which PUFA contribute to differences
+```{r, message=FALSE, warning=FALSE}
+unique(simper_summary$PUFA)
+```
+
+Average a bigger average b
+```{r, message=FALSE, warning=FALSE}
+simper_summary$ava_bigger <- with(simper_summary, ifelse(`Average a` > `Average b`, "y", "n"))
+```
+
+Count which PUFA in contrast main contributer to difference
+```{r, message=FALSE, warning=FALSE}
+count_simper_summary <- count(simper_summary, c("Experiment", "Contrast",
+                                                "ava_bigger","PUFA")) 
+
+count_simper_summary_1 <- count(simper_summary, c("Experiment", "PUFA"))
+
+View(filter(count_simper_summary, Experiment == 2))
+```
+
+# LM(M)
+## Weekly endpoints
+
+* fixed effects: fresh weight, growth and body condition
+* random effect: spider_ID, because spiders are measured repeatedly
+
+
+### M1
+#### Body condition
+```{r, message=FALSE, warning=FALSE}
+M1_lmm_body_cond <-glmmTMB(body_cond ~ treatment * timepoint + (1 | spider_ID), 
+                           family = "gaussian", data = M1_stat_weekly, na.action = na.omit)
+
+summary(M1_lmm_body_cond)
+```
+
+Check normality and variance
+```{r, message=FALSE, warning=FALSE}
+F_M1_body <- fitted(M1_lmm_body_cond)
+E_M1_body<- resid(M1_lmm_body_cond)
+
+plot(x = F_M1_body, y = E_M1_body, xlab = "Fitted values", ylab = "Pearson residuals")
+abline(h = 0, lty = 2) # variance okay
+
+qreference(E_M1_body, nrep = 8) # normality okay
+```
+
+Test effects of explanatory variables and their interactions with type II ANOVA using Wald chisquare tests.
+```{r, message=FALSE, warning=FALSE}
+M1_anova_body_cond <- Anova(M1_lmm_body_cond, type = c(2))
+
+M1_anova_body_cond
+```
+
+Interaction significant so keep it
+
+Plot interactions
+```{r, message=FALSE, warning=FALSE}
+plot(allEffects(M1_lmm_body_cond, x.var = "timepoint"))
+```
+
+#### Fresh weight
+```{r, message=FALSE, warning=FALSE}
+M1_lmm_fresh_weight <-glmmTMB(weight_spider_g ~ treatment * timepoint + (1 | spider_ID), 
+                        family = "gaussian", data = M1_stat_weekly, na.action = na.omit,
+                        control = glmmTMBControl(optCtrl=list(iter.max=1e3,eval.max=1e3)))
+
+summary(M1_lmm_fresh_weight)
+```
+
+Check normality and variance
+```{r, message=FALSE, warning=FALSE}
+F_M1_fresh_weight <- fitted(M1_lmm_fresh_weight)
+E_M1_fresh_weight<- resid(M1_lmm_fresh_weight)
+
+plot(x = F_M1_fresh_weight, y = E_M1_fresh_weight, xlab = "Fitted values", ylab = "Pearson residuals")
+abline(h = 0, lty = 2) # variance okay
+
+qreference(E_M1_fresh_weight, nrep = 8) # normality okay
+```
+
+Test effects of explanatory variables and their interactions with type II ANOVA using Wald chisquare tests.
+```{r, message=FALSE, warning=FALSE}
+M1_anova_fresh_weight <- Anova(M1_lmm_fresh_weight, type = c(2))
+
+M1_anova_fresh_weight
+```
+
+Interaction significant so keep it
+
+Plot interactions
+```{r, message=FALSE, warning=FALSE}
+plot(allEffects(M1_lmm_fresh_weight, x.var = "timepoint"))
+
+plot(allEffects(M1_lmm_fresh_weight, x.var = "treatment"))
+```
+
+#### Growth rate 
+```{r, message=FALSE, warning=FALSE}
+M1_lmm_growth_rate <-glmmTMB(growth_rate ~ treatment * timepoint 
+                               + (1 | spider_ID), 
+                        family = "gaussian", 
+                        data = M1_stat_weekly[M1_stat_weekly$timepoint != "t0",], 
+                        na.action = na.omit,
+                        control = 
+                          glmmTMBControl(optCtrl=list(iter.max=1e3,eval.max=1e3)))
+
+summary(M1_lmm_growth_rate)
+```
+
+Check normality and variance
+```{r, message=FALSE, warning=FALSE}
+F_M1_growth_rate <- fitted(M1_lmm_growth_rate)
+E_M1_growth_rate<- resid(M1_lmm_growth_rate)
+
+plot(x = F_M1_growth_rate, y = E_M1_growth_rate, xlab = "Fitted values", ylab = "Pearson residuals")
+abline(h = 0, lty = 2) # variance okay
+
+qreference(E_M1_growth_rate, nrep = 8) # normality okay
+```
+
+Test effects of explanatory variables and their interactions with type II ANOVA using Wald chisquare tests.
+```{r, message=FALSE, warning=FALSE}
+M1_anova_growth_rate <- Anova(M1_lmm_growth_rate, type = c(2))
+
+M1_anova_growth_rate
+```
+
+Interaction not significant, so model without interaction
+```{r, message=FALSE, warning=FALSE}
+M1_lmm_growth_rate_1 <-glmmTMB(growth_rate ~ treatment + timepoint 
+                               + (1 | spider_ID), 
+                        family = "gaussian", 
+                        data = M1_stat_weekly[M1_stat_weekly$timepoint != "t0",], 
+                        na.action = na.omit,
+                        control = 
+                          glmmTMBControl(optCtrl=list(iter.max=1e3,eval.max=1e3)))
+
+summary(M1_lmm_growth_rate_1)
+```
+
+Check normality and variance
+```{r, message=FALSE, warning=FALSE}
+F_M1_growth_rate <- fitted(M1_lmm_growth_rate_1)
+E_M1_growth_rate<- resid(M1_lmm_growth_rate_1)
+
+plot(x = F_M1_growth_rate, y = E_M1_growth_rate, xlab = "Fitted values", ylab = "Pearson residuals")
+abline(h = 0, lty = 2) # variance okay
+
+qreference(E_M1_growth_rate, nrep = 8) # normality okay
+```
+
+Test effects of explanatory variables and their interactions with type II ANOVA using Wald chisquare tests.
+```{r, message=FALSE, warning=FALSE}
+M1_anova_growth_rate <- Anova(M1_lmm_growth_rate_1, type = c(2))
+
+M1_anova_growth_rate
+```
+
+### M2 
+#### Body condition
+```{r, message=FALSE, warning=FALSE}
+M2_lmm_body_cond <-glmmTMB(body_cond ~ treatment * timepoint + (1 | spider_ID), 
+                           family = "gaussian", data = M2_stat_weekly, na.action = na.omit)
+
+summary(M2_lmm_body_cond)
+```
+
+Check normality and variance
+```{r, message=FALSE, warning=FALSE}
+F_M2_body <- fitted(M2_lmm_body_cond)
+E_M2_body<- resid(M2_lmm_body_cond)
+
+plot(x = F_M2_body, y = E_M2_body, xlab = "Fitted values", ylab = "Pearson residuals")
+abline(h = 0, lty = 2) # variance okay
+
+qreference(E_M2_body, nrep = 8) # normality okay
+```
+
+Test effects of explanatory variables and their interactions with type II ANOVA using Wald chisquare tests.
+```{r, message=FALSE, warning=FALSE}
+Anova(M2_lmm_body_cond, type = c(2))
+```
+
+Interaction not significant so model without interaction
+```{r, message=FALSE, warning=FALSE}
+M2_lmm_body_cond_1 <-glmmTMB(body_cond ~ treatment + timepoint + (1 | spider_ID), 
+                           family = "gaussian", data = M2_stat_weekly, na.action = na.omit)
+
+summary(M2_lmm_body_cond_1)
+```
+
+Check normality and variance
+```{r, message=FALSE, warning=FALSE}
+F_M2_body <- fitted(M2_lmm_body_cond_1)
+E_M2_body<- resid(M2_lmm_body_cond_1)
+
+plot(x = F_M2_body, y = E_M2_body, xlab = "Fitted values", ylab = "Pearson residuals")
+abline(h = 0, lty = 2) # variance okay
+
+qreference(E_M2_body, nrep = 8) # normality okay
+```
+
+Test effects of explanatory variables with type II ANOVA using Wald chisquare tests.
+```{r, message=FALSE, warning=FALSE}
+M2_anova_body_cond <- Anova(M2_lmm_body_cond_1, type = c(2))
+M2_anova_body_cond
+```
+
+#### Fresh weight
+```{r, message=FALSE, warning=FALSE}
+M2_lmm_fresh_weight <-glmmTMB(weight_spider_g ~ treatment * timepoint + (1 | spider_ID), 
+                        family = "gaussian", data = M2_stat_weekly, na.action = na.omit)
+
+summary(M2_lmm_fresh_weight)
+```
+
+Check normality and variance
+```{r, message=FALSE, warning=FALSE}
+F_M2_fresh_weight <- fitted(M2_lmm_fresh_weight)
+E_M2_fresh_weight<- resid(M2_lmm_fresh_weight)
+
+plot(x = F_M2_fresh_weight, y = E_M2_fresh_weight, xlab = "Fitted values", ylab = "Pearson residuals")
+abline(h = 0, lty = 2) # variance okay
+
+qreference(E_M2_fresh_weight, nrep = 8) # normality okay
+```
+
+Test effects of explanatory variables and their interactions with type II ANOVA using Wald chisquare tests.
+```{r, message=FALSE, warning=FALSE}
+Anova(M2_lmm_fresh_weight, type = c(2))
+```
+
+Interaction not significant, so model without interaction
+```{r, message=FALSE, warning=FALSE}
+M2_lmm_fresh_weight_1 <-glmmTMB(weight_spider_g ~ treatment + timepoint + (1 | spider_ID), 
+                        family = "gaussian", data = M2_stat_weekly, na.action = na.omit)
+
+summary(M2_lmm_fresh_weight_1)
+```
+
+Check normality and variance
+```{r, message=FALSE, warning=FALSE}
+F_M2_fresh_weight <- fitted(M2_lmm_fresh_weight_1)
+E_M2_growth<- resid(M2_lmm_fresh_weight_1)
+
+plot(x = F_M2_fresh_weight, y = E_M2_growth, xlab = "Fitted values", ylab = "Pearson residuals")
+abline(h = 0, lty = 2) # variance okay
+
+qreference(E_M2_growth, nrep = 8) # normality okay
+```
+
+Test effects of explanatory variables with type II ANOVA using Wald chisquare tests.
+```{r, message=FALSE, warning=FALSE}
+M2_anova_fresh_weight <- Anova(M2_lmm_fresh_weight_1, type = c(2))
+M2_anova_fresh_weight
+```
+
+#### Growth rate
+```{r, message=FALSE, warning=FALSE}
+M2_lmm_growth_rate <-glmmTMB(growth_rate ~ treatment * timepoint 
+                               + (1 | spider_ID), 
+                        family = "gaussian", 
+                        data = M2_stat_weekly[M2_stat_weekly$timepoint != "t0",], 
+                        na.action = na.omit,
+                        control = 
+                          glmmTMBControl(optCtrl=list(iter.max=1e3,eval.max=1e3)))
+
+summary(M2_lmm_growth_rate)
+```
+
+Check normality and variance
+```{r, message=FALSE, warning=FALSE}
+F_M2_growth_rate <- fitted(M2_lmm_growth_rate)
+E_M2_growth_rate<- resid(M2_lmm_growth_rate)
+
+plot(x = F_M2_growth_rate, y = E_M2_growth_rate, xlab = "Fitted values", ylab = "Pearson residuals")
+abline(h = 0, lty = 2) # variance okay
+
+qreference(E_M2_growth_rate, nrep = 8) # normality okay
+```
+
+Test effects of explanatory variables and their interactions with type II ANOVA using Wald chisquare tests.
+```{r, message=FALSE, warning=FALSE}
+M2_anova_growth_rate <- Anova(M2_lmm_growth_rate, type = c(2))
+
+M2_anova_growth_rate
+```
+
+Interaction not significant, so model without interaction
+```{r, message=FALSE, warning=FALSE}
+M2_lmm_growth_rate_1 <-glmmTMB(growth_rate ~ treatment + timepoint 
+                               + (1 | spider_ID), 
+                        family = "gaussian", 
+                        data = M2_stat_weekly[M2_stat_weekly$timepoint != "t0",], 
+                        na.action = na.omit,
+                        control = 
+                          glmmTMBControl(optCtrl=list(iter.max=1e3,eval.max=1e3)))
+
+summary(M2_lmm_growth_rate_1)
+```
+
+Check normality and variance
+```{r, message=FALSE, warning=FALSE}
+F_M2_growth_rate <- fitted(M2_lmm_growth_rate_1)
+E_M2_growth_rate<- resid(M2_lmm_growth_rate_1)
+
+plot(x = F_M2_growth_rate, y = E_M2_growth_rate, xlab = "Fitted values", ylab = "Pearson residuals")
+abline(h = 0, lty = 2) # variance okay
+
+qreference(E_M2_growth_rate, nrep = 8) # normality okay
+```
+
+Test effects of explanatory variables and their interactions with type II ANOVA using Wald chisquare tests.
+```{r, message=FALSE, warning=FALSE}
+M2_anova_growth_rate <- Anova(M2_lmm_growth_rate_1, type = c(2))
+
+M2_anova_growth_rate
+```
+
+## Deadly endpoints
+
+* spider_ID not used as random effect, because every spider measured only once
+
+### M1
+#### Dry weight
+```{r, message=FALSE, warning=FALSE}
+M1_lm_dry_weight <- lm(dry_weight_mg ~ treatment * timepoint, data = M1_stat_deadly,
+                       na.action = na.omit)
+
+summary(M1_lm_dry_weight)
+```
+
+Check normality and variance
+```{r, message=FALSE, warning=FALSE}
+F_M1_dry_weight <- fitted(M1_lm_dry_weight)
+E_M1_dry_weight <- resid(M1_lm_dry_weight)
+
+plot(x = F_M1_dry_weight, y = E_M1_dry_weight, xlab = "Fitted values", ylab = "Pearson residuals")
+abline(h = 0, lty = 2) # variance okay
+
+qreference(E_M1_dry_weight, nrep = 8) # normality okay
+```
+
+Test effects of explanatory variables and their interactions with type II ANOVA using F-tests.
+```{r, message=FALSE, warning=FALSE}
+Anova(M1_lm_dry_weight, type = c(2))
+```
+
+Interaction not significant, so model without interaction
+```{r, message=FALSE, warning=FALSE}
+M1_lm_dry_weight_1 <- lm(dry_weight_mg ~ treatment + timepoint, data = M1_stat_deadly,
+                       na.action = na.omit)
+
+summary(M1_lm_dry_weight_1)
+```
+
+Check normality and variance
+```{r, message=FALSE, warning=FALSE}
+F_M1_dry_weight <- fitted(M1_lm_dry_weight_1)
+E_M1_dry_weight <- resid(M1_lm_dry_weight_1)
+
+plot(x = F_M1_dry_weight, y = E_M1_dry_weight, xlab = "Fitted values", ylab = "Pearson residuals")
+abline(h = 0, lty = 2) # variance okay
+
+qreference(E_M1_dry_weight, nrep = 8) # normality okay
+```
+
+Test effects of explanatory variables with type II ANOVA using F-tests.
+```{r, message=FALSE, warning=FALSE}
+M1_anova_dry_weight <- Anova(M1_lm_dry_weight_1, type = c(2))
+
+M1_anova_dry_weight
+```
+
+#### Ratio encapsulated, uncapsulated area
+```{r, message=FALSE, warning=FALSE}
+M1_lm_ratio_encapsulated <- lm(mean_R_e_ne ~ treatment * timepoint, data = M1_stat_deadly,
+                                na.action = na.omit)
+
+summary(M1_lm_ratio_encapsulated)
+```
+
+Check normality and variance
+```{r, message=FALSE, warning=FALSE}
+F_M1_ratio_encapsulated <- fitted(M1_lm_ratio_encapsulated)
+E_M1_ratio_encapsulated <- resid(M1_lm_ratio_encapsulated)
+
+plot(x = F_M1_ratio_encapsulated, y = E_M1_ratio_encapsulated, xlab = "Fitted values", ylab = "Pearson residuals")
+abline(h = 0, lty = 2) # variance okay
+
+qreference(E_M1_ratio_encapsulated, nrep = 8) # normality okay
+```
+
+Test effects of explanatory variables and their interactions with type II ANOVA using F-tests.
+```{r, message=FALSE, warning=FALSE}
+Anova(M1_lm_ratio_encapsulated, type = c(2))
+```
+
+Interaction not significant, so model without interaction
+```{r, message=FALSE, warning=FALSE}
+M1_lm_ratio_encapsulated_1 <- lm(mean_R_e_ne ~ treatment + timepoint, 
+                                 data = M1_stat_deadly,
+                                na.action = na.omit)
+
+summary(M1_lm_ratio_encapsulated_1)
+```
+
+Check normality and variance
+```{r, message=FALSE, warning=FALSE}
+F_M1_ratio_encapsulated <- fitted(M1_lm_ratio_encapsulated_1)
+E_M1_ratio_encapsulated <- resid(M1_lm_ratio_encapsulated_1)
+
+plot(x = F_M1_ratio_encapsulated, y = E_M1_ratio_encapsulated, xlab = "Fitted values", ylab = "Pearson residuals")
+abline(h = 0, lty = 2) # variance okay
+
+qreference(E_M1_ratio_encapsulated, nrep = 8) # normality okay
+```
+
+Test effects of explanatory variables with type II ANOVA using F-tests.
+```{r, message=FALSE, warning=FALSE}
+M1_anova_ratio_encapsulated <- Anova(M1_lm_ratio_encapsulated_1, type = c(2))
+M1_anova_ratio_encapsulated
+```
+
+#### Area encapsulated
+```{r, message=FALSE, warning=FALSE}
+M1_lm_area_encapsulated <- lm(mean_area_encapsulation ~ treatment * timepoint, 
+                              data = M1_stat_deadly, na.action = na.omit)
+
+summary(M1_lm_area_encapsulated)
+```
+
+Check normality and variance
+```{r, message=FALSE, warning=FALSE}
+F_M1_area_encapsulated <- fitted(M1_lm_area_encapsulated)
+E_M1_area_encapsulated <- resid(M1_lm_area_encapsulated)
+
+plot(x = F_M1_area_encapsulated, y = E_M1_area_encapsulated, xlab = "Fitted values", ylab = "Pearson residuals")
+abline(h = 0, lty = 2) # variance okay
+
+qreference(E_M1_area_encapsulated, nrep = 8) # normality okay
+```
+
+Test effects of explanatory variables and their interactions with type II ANOVA using F-tests.
+```{r, message=FALSE, warning=FALSE}
+Anova(M1_lm_area_encapsulated, type = c(2))
+```
+
+Interaction not significant, so model without interaction
+```{r, message=FALSE, warning=FALSE}
+M1_lm_area_encapsulated_1 <- lm(mean_area_encapsulation ~ treatment + timepoint, 
+                              data = M1_stat_deadly, na.action = na.omit)
+
+summary(M1_lm_area_encapsulated_1)
+```
+
+Check normality and variance
+```{r, message=FALSE, warning=FALSE}
+F_M1_area_encapsulated <- fitted(M1_lm_area_encapsulated_1)
+E_M1_area_encapsulated <- resid(M1_lm_area_encapsulated_1)
+
+plot(x = F_M1_area_encapsulated, y = E_M1_area_encapsulated, xlab = "Fitted values", ylab = "Pearson residuals")
+abline(h = 0, lty = 2) # variance okay
+
+qreference(E_M1_area_encapsulated, nrep = 8) # normality okay
+```
+
+Test effects of explanatory variables with type II ANOVA using F-tests.
+```{r, message=FALSE, warning=FALSE}
+M1_anova_area_encapsulated <- Anova(M1_lm_area_encapsulated_1, type = c(2))
+M1_anova_area_encapsulated
+```
+
+### M2
+#### Dry weight
+```{r, message=FALSE, warning=FALSE}
+M2_lm_dry_weight <- lm(dry_weight_mg ~ treatment * timepoint, data = M2_stat_deadly,
+                       na.action = na.omit)
+
+summary(M2_lm_dry_weight)
+```
+
+Check normality and variance
+```{r, message=FALSE, warning=FALSE}
+F_M2_dry_weight <- fitted(M2_lm_dry_weight)
+E_M2_dry_weight <- resid(M2_lm_dry_weight)
+
+plot(x = F_M2_dry_weight, y = E_M2_dry_weight, xlab = "Fitted values", ylab = "Pearson residuals")
+abline(h = 0, lty = 2) # variance okay
+
+qreference(E_M2_dry_weight, nrep = 8) # normality okay
+```
+
+Test effects of explanatory variables and their interactions with type II ANOVA using F-tests.
+```{r, message=FALSE, warning=FALSE}
+Anova(M2_lm_dry_weight, type = c(2))
+```
+
+Interaction not significant, so model without interaction
+```{r, message=FALSE, warning=FALSE}
+M2_lm_dry_weight_1 <- lm(dry_weight_mg ~ treatment + timepoint, data = M2_stat_deadly,
+                       na.action = na.omit)
+
+summary(M2_lm_dry_weight_1)
+```
+
+Check normality and variance
+```{r, message=FALSE, warning=FALSE}
+F_M2_dry_weight <- fitted(M2_lm_dry_weight_1)
+E_M2_dry_weight <- resid(M2_lm_dry_weight_1)
+
+plot(x = F_M2_dry_weight, y = E_M2_dry_weight, xlab = "Fitted values", ylab = "Pearson residuals")
+abline(h = 0, lty = 2) # variance okay
+
+qreference(E_M2_dry_weight, nrep = 8) # normality okay
+```
+
+Test effects of explanatory variables with type II ANOVA using F-tests.
+```{r, message=FALSE, warning=FALSE}
+M2_anova_dry_weight <- Anova(M2_lm_dry_weight_1, type = c(2))
+M2_anova_dry_weight
+```
+
+#### Ratio encapsulated, uncapsulated area
+```{r, message=FALSE, warning=FALSE}
+M2_lm_ratio_encapsulated <- lm(mean_R_e_ne ~ treatment * timepoint, data = M2_stat_deadly,
+                               na.action = na.omit)
+
+summary(M2_lm_ratio_encapsulated)
+```
+
+Check normality and variance
+```{r, message=FALSE, warning=FALSE}
+F_M2_ratio_encapsulated <- fitted(M2_lm_ratio_encapsulated)
+E_M2_ratio_encapsulated <- resid(M2_lm_ratio_encapsulated)
+
+plot(x = F_M2_ratio_encapsulated, y = E_M2_ratio_encapsulated, xlab = "Fitted values", ylab = "Pearson residuals")
+abline(h = 0, lty = 2) # variance ok
+
+qreference(E_M2_ratio_encapsulated, nrep = 8) # normality ok
+```
+
+Test effects of explanatory variables and their interactions with type II ANOVA using F-tests.
+```{r, message=FALSE, warning=FALSE}
+Anova(M2_lm_ratio_encapsulated, type = c(2))
+```
+
+Interaction not significant, so model without interaction
+```{r, message=FALSE, warning=FALSE}
+M2_lm_ratio_encapsulated_1 <- lm(mean_R_e_ne ~ treatment + timepoint, data = M2_stat_deadly,
+                               na.action = na.omit)
+
+summary(M2_lm_ratio_encapsulated_1)
+```
+
+Check normality and variance
+```{r, message=FALSE, warning=FALSE}
+F_M2_ratio_encapsulated <- fitted(M2_lm_ratio_encapsulated_1)
+E_M2_ratio_encapsulated <- resid(M2_lm_ratio_encapsulated_1)
+
+plot(x = F_M2_ratio_encapsulated, y = E_M2_ratio_encapsulated, xlab = "Fitted values", ylab = "Pearson residuals")
+abline(h = 0, lty = 2) # variance ok
+
+qreference(E_M2_ratio_encapsulated, nrep = 8) # normality ok
+```
+
+Test effects of explanatory variables with type II ANOVA using F-tests.
+```{r, message=FALSE, warning=FALSE}
+M2_anova_ratio_encapsulated <- Anova(M2_lm_ratio_encapsulated_1, type = c(2))
+M2_anova_ratio_encapsulated
+```
+
+#### Area encapsulated
+```{r, message=FALSE, warning=FALSE}
+M2_lm_area_encapsulated <- lm(mean_area_encapsulation ~ treatment * timepoint,
+                              data = M2_stat_deadly, na.action = na.omit)
+
+summary(M2_lm_area_encapsulated)
+```
+
+Check normality and variance
+```{r, message=FALSE, warning=FALSE}
+F_M2_area_encapsulated <- fitted(M2_lm_area_encapsulated)
+E_M2_area_encapsulated <- resid(M2_lm_area_encapsulated)
+
+plot(x = F_M2_area_encapsulated, y = E_M2_area_encapsulated, xlab = "Fitted values", ylab = "Pearson residuals")
+abline(h = 0, lty = 2) # variance okay
+
+qreference(E_M2_area_encapsulated, nrep = 8) # normality okay
+```
+
+Test effects of explanatory variables and their interactions with type II ANOVA using F-tests.
+```{r, message=FALSE, warning=FALSE}
+Anova(M2_lm_area_encapsulated, type = c(2))
+```
+
+Interaction not significant, so model without interaction
+```{r, message=FALSE, warning=FALSE}
+M2_lm_area_encapsulated_1 <- lm(mean_area_encapsulation ~ treatment + timepoint,
+                              data = M2_stat_deadly, na.action = na.omit)
+
+summary(M2_lm_area_encapsulated_1)
+```
+
+Check normality and variance
+```{r, message=FALSE, warning=FALSE}
+F_M2_area_encapsulated <- fitted(M2_lm_area_encapsulated_1)
+E_M2_area_encapsulated <- resid(M2_lm_area_encapsulated_1)
+
+plot(x = F_M2_area_encapsulated, y = E_M2_area_encapsulated, xlab = "Fitted values", ylab = "Pearson residuals")
+abline(h = 0, lty = 2) # variance okay
+
+qreference(E_M2_area_encapsulated, nrep = 8) # normality okay
+```
+
+Test effects of explanatory variables with type II ANOVA using F-tests.
+```{r, message=FALSE, warning=FALSE}
+M2_anova_area_encapsulated <- Anova(M2_lm_area_encapsulated_1, type = c(2))
+M2_anova_area_encapsulated
+```
+
+## Export results
+
+Variable names
+```{r, message=FALSE, warning=FALSE}
+lmm_variable <- c("treatment", "timepoint", "treatment:timepoint")
+lmm_variable_1 <- c("treatment", "timepoint")
+
+lm_variable <- c("treatment", "timepoint", "residuals")
+```
+
+Test statistics for LMM
+```{r, message=FALSE, warning=FALSE}
+lmm_anova_test_stat <- as.data.frame(cbind(M1_anova_fresh_weight$Chisq,
+                                           M1_anova_body_cond$Chisq))
+lmm_anova_test_stat$expl_variable <- lmm_variable
+lmm_anova_test_stat$variable <- "Chisq"
+
+lmm_anova_test_stat_1 <- as.data.frame(cbind(M1_anova_growth_rate$Chisq,
+                                             M2_anova_fresh_weight$Chisq,
+                                             M2_anova_body_cond$Chisq,
+                                             M2_anova_growth_rate$Chisq))
+lmm_anova_test_stat_1$expl_variable <- lmm_variable_1
+lmm_anova_test_stat_1$variable <- "Chisq"
+```
+
+Test statistic for LM
+```{r, message=FALSE, warning=FALSE}
+lm_anova_test_stat <- as.data.frame(cbind(M1_anova_dry_weight$'F value', 
+                                          M1_anova_ratio_encapsulated$'F value', 
+                                          M1_anova_area_encapsulated$'F value',
+                                          M2_anova_dry_weight$'F value',
+                                          M2_anova_ratio_encapsulated$'F value', 
+                                          M2_anova_area_encapsulated$'F value'))
+lm_anova_test_stat$expl_variable <- lm_variable
+lm_anova_test_stat$variable <- "F value"
+```
+
+p-values
+```{r, message=FALSE, warning=FALSE}
+lmm_anova_p_value <- as.data.frame(cbind(M1_anova_fresh_weight$'Pr(>Chisq)',
+                                         M1_anova_body_cond$'Pr(>Chisq)'))
+lmm_anova_p_value$expl_variable <- lmm_variable
+lmm_anova_p_value$variable <- "Pr(>Chisq)"
+
+lmm_anova_p_value_1 <- as.data.frame(cbind(M1_anova_growth_rate$'Pr(>Chisq)',
+                                           M2_anova_fresh_weight$'Pr(>Chisq)',
+                                           M2_anova_body_cond$'Pr(>Chisq)',
+                                           M2_anova_growth_rate$'Pr(>Chisq)'))
+lmm_anova_p_value_1$expl_variable <- lmm_variable_1
+lmm_anova_p_value_1$variable <- "Pr(>Chisq)"
+
+lm_anova_p_value <- as.data.frame(cbind(M1_anova_dry_weight$'Pr(>F)',
+                          M1_anova_ratio_encapsulated$'Pr(>F)',
+                          M1_anova_area_encapsulated$'Pr(>F)', 
+                          M2_anova_dry_weight$'Pr(>F)',
+                          M2_anova_ratio_encapsulated$'Pr(>F)',
+                          M2_anova_area_encapsulated$'Pr(>F)'))
+lm_anova_p_value$expl_variable <- lm_variable
+lm_anova_p_value$variable <- "Pr(>F)"
+```
+
+Degrees of freedom
+```{r, message=FALSE, warning=FALSE}
+lmm_anova_df <- as.data.frame(cbind(M1_anova_fresh_weight$Df, 
+                                    M1_anova_body_cond$Df))
+lmm_anova_df$expl_variable <- lmm_variable
+lmm_anova_df$variable <- "Df"
+
+lmm_anova_df_1 <- as.data.frame(cbind(M1_anova_growth_rate$Df,
+                                      M2_anova_fresh_weight$Df,
+                                      M2_anova_body_cond$Df,
+                                      M2_anova_growth_rate$Df))
+lmm_anova_df_1$expl_variable <- lmm_variable_1
+lmm_anova_df_1$variable <- "Df"
+
+lm_anova_df <- as.data.frame(cbind(M1_anova_dry_weight$Df,
+                                   M1_anova_ratio_encapsulated$Df,
+                                   M1_anova_area_encapsulated$Df,
+                                   M2_anova_dry_weight$Df,
+                                   M2_anova_ratio_encapsulated$Df,
+                                   M2_anova_area_encapsulated$Df))
+lm_anova_df$expl_variable <- lm_variable
+lm_anova_df$variable <- "Df"
+```
+
+Save LMM 
+```{r, message=FALSE, warning=FALSE}
+lmm_anova <- rbind(lmm_anova_test_stat, lmm_anova_p_value, lmm_anova_df)
+names(lmm_anova)[1:2] <- c("M1_anova_fresh_weight", "M1_anova_body_cond")
+
+lmm_anova <- reshape2::melt(lmm_anova, id.vars = c("expl_variable", "variable"),
+                            variable.name = "model")
+lmm_anova <- reshape2::dcast(lmm_anova,  expl_variable ~ model + variable,
+                             value.var = "value")
+
+lmm_anova_1 <- rbind(lmm_anova_test_stat_1, lmm_anova_p_value_1, lmm_anova_df_1)
+names(lmm_anova_1)[1:4] <- c("M1_anova_growth_rate", 
+                             "M2_anova_fresh_weight",
+                             "M2_anova_body_cond",
+                             "M2_anova_growth_rate")
+lmm_anova_1 <- reshape2::melt(lmm_anova_1, id.vars = c("expl_variable", "variable"), variable.name = "model")
+lmm_anova_1 <- reshape2::dcast(lmm_anova_1,  expl_variable ~ model + variable, value.var = "value")
+
+#write.csv(lmm_anova, file = "lmm_anova.csv", row.names = FALSE)
+#write.csv(lmm_anova_1, file = "lmm_anova_1.csv", row.names = FALSE)
+```
+
+Save LM
+```{r, message=FALSE, warning=FALSE}
+lm_anova <- rbind(lm_anova_test_stat, lm_anova_p_value, lm_anova_df)
+names(lm_anova)[1:6] <- c("M1_anova_dry_weight", 
+                          "M1_anova_ratio_encapsulated",
+                          "M1_anova_area_encapsulated", 
+                          "M2_anova_dry_weight",
+                          "M2_anova_ratio_encapsulated", 
+                          "M2_anova_area_encapsulated")
+lm_anova <- reshape2::melt(lm_anova, id.vars = c("expl_variable", "variable"), variable.name = "model")
+lm_anova <- reshape2::dcast(lm_anova,  expl_variable ~ model + variable, value.var = "value")
+#write.csv(lm_anova, file = "lm_anova.csv", row.names = FALSE)
+```
+
+# Plot weekly and deadly endpoints
+
+## Preparation
+
+Get mean and sd weekly endpoints
+```{r, message=FALSE, warning=FALSE}
+M1_stat_weekly_mean <- select(M1_stat_weekly, 
+                              -c("Organism", "experiment", "experiment_ID", "spider_ID", 
+                                 "date_endpoint"))
+
+M1_stat_weekly_mean <- reshape2::melt(M1_stat_weekly_mean, id.vars = c("treatment", "timepoint"))
+
+M1_stat_weekly_mean <-  ddply(M1_stat_weekly_mean, c("treatment", "timepoint",
+                                                     "variable"), summarise,
+                              mean = mean(value, na.rm = TRUE),
+                              sd = sd(value, na.rm = TRUE))
+
+M2_stat_weekly_mean <- select(M2_stat_weekly, 
+                              -c("Organism", "experiment", "experiment_ID", "spider_ID", 
+                                 "date_endpoint"))
+
+M2_stat_weekly_mean <- reshape2::melt(M2_stat_weekly_mean, id.vars = c("treatment", "timepoint"))
+
+M2_stat_weekly_mean <-  ddply(M2_stat_weekly_mean, c("treatment", "timepoint",
+                                                     "variable"), summarise,
+                              mean = mean(value, na.rm = TRUE),
+                              sd = sd(value, na.rm = TRUE))
+```
+
+Get mean and sd deadly endpoints
+```{r, message=FALSE, warning=FALSE}
+M1_stat_deadly_mean <- select(M1_stat_deadly, 
+                              c("treatment", "timepoint", "mean_R_e_ne",
+                                "mean_area_encapsulation", "dry_weight_mg"))
+
+M1_stat_deadly_mean <- reshape2::melt(M1_stat_deadly_mean, id.vars = c("treatment", "timepoint"))
+
+M1_stat_deadly_mean <-  ddply(M1_stat_deadly_mean, c("treatment", "timepoint",
+                                                     "variable"), summarise,
+                              mean = mean(value, na.rm = TRUE),
+                              sd = sd(value, na.rm = TRUE))
+
+M2_stat_deadly_mean <- select(M2_stat_deadly, 
+                              c("treatment", "timepoint", "mean_R_e_ne",
+                                "mean_area_encapsulation", "dry_weight_mg"))
+
+M2_stat_deadly_mean <- reshape2::melt(M2_stat_deadly_mean, id.vars = c("treatment", "timepoint"))
+
+M2_stat_deadly_mean <-  ddply(M2_stat_deadly_mean, c("treatment", "timepoint",
+                                                     "variable"), summarise,
+                              mean = mean(value, na.rm = TRUE),
+                              sd = sd(value, na.rm = TRUE))
+```
+
+Rename fish food
+```{r, message=FALSE, warning=FALSE}
+M1_stat_weekly_mean$treatment <- gsub("fishfood", "fish food",
+                                      M1_stat_weekly_mean$treatment)
+M1_stat_deadly_mean$treatment <- gsub("fishfood", "fish food",
+                                      M1_stat_deadly_mean$treatment)
+
+M2_stat_weekly_mean$treatment <- gsub("fishfood", "fish food",
+                                      M2_stat_weekly_mean$treatment)
+M2_stat_deadly_mean$treatment <- gsub("fishfood", "fish food",
+                                      M2_stat_deadly_mean$treatment)
+```
+
+Rename time points
+```{r, message=FALSE, warning=FALSE}
+M1_stat_weekly_mean$timepoint <- gsub("t0", "0 days",
+                                      M1_stat_weekly_mean$timepoint)
+M1_stat_weekly_mean$timepoint <- gsub("t2", "9 days",
+                                      M1_stat_weekly_mean$timepoint)
+M1_stat_weekly_mean$timepoint <- gsub("t3", "16 days",
+                                      M1_stat_weekly_mean$timepoint)
+M1_stat_weekly_mean$timepoint <- gsub("t4", "23 days",
+                                      M1_stat_weekly_mean$timepoint)
+M1_stat_weekly_mean$timepoint <- gsub("t5", "30 days",
+                                      M1_stat_weekly_mean$timepoint)
+M1_stat_weekly_mean$timepoint <- gsub("t6", "37 days",
+                                      M1_stat_weekly_mean$timepoint)
+M1_stat_weekly_mean$timepoint <- gsub("t7", "44 days",
+                                      M1_stat_weekly_mean$timepoint)
+
+M1_stat_deadly_mean$timepoint <- gsub("t0", "0 days",
+                                      M1_stat_deadly_mean$timepoint)
+M1_stat_deadly_mean$timepoint <- gsub("t4", "23 days",
+                                      M1_stat_deadly_mean$timepoint)
+M1_stat_deadly_mean$timepoint <- gsub("t7", "44 days",
+                                      M1_stat_deadly_mean$timepoint)
+
+M2_stat_weekly_mean$timepoint <- gsub("t0", "0 days", M2_stat_weekly_mean$timepoint)
+M2_stat_weekly_mean$timepoint <- gsub("t1", "7 days", M2_stat_weekly_mean$timepoint)
+M2_stat_weekly_mean$timepoint <- gsub("t2", "14 days", M2_stat_weekly_mean$timepoint)
+M2_stat_weekly_mean$timepoint <- gsub("t3", "21 days", M2_stat_weekly_mean$timepoint)
+
+M2_stat_deadly_mean$timepoint <- gsub("t0", "0 days", M2_stat_deadly_mean$timepoint)
+M2_stat_deadly_mean$timepoint <- gsub("t2", "14 days", M2_stat_deadly_mean$timepoint)
+M2_stat_deadly_mean$timepoint <- gsub("t3", "21 days", M2_stat_deadly_mean$timepoint)
+```
+
+Reorder factors
+```{r, message=FALSE, warning=FALSE}
+M1_stat_weekly_mean$treatment <- factor(M1_stat_weekly_mean$treatment, 
+                                        levels = c("algae", "oatmeal", "fish food"))
+M1_stat_deadly_mean$treatment <- factor(M1_stat_deadly_mean$treatment, 
+                                        levels = c("algae", "oatmeal", "fish food"))
+
+M1_stat_weekly_mean$timepoint <- factor(M1_stat_weekly_mean$timepoint, 
+                                        levels = c("0 days", "9 days", "16 days", 
+                                                   "23 days", "30 days", "37 days",
+                                                   "44 days"))
+M1_stat_deadly_mean$timepoint <- factor(M1_stat_deadly_mean$timepoint, 
+                                        levels = c("0 days", "23 days", "44 days"))
+
+
+M2_stat_weekly_mean$treatment <- factor(M2_stat_weekly_mean$treatment, 
+                                        levels = c("leaves", "oatmeal", "fish food"))
+M2_stat_deadly_mean$treatment <- factor(M2_stat_deadly_mean$treatment, 
+                                        levels = c("leaves", "oatmeal", "fish food"))
+
+M2_stat_weekly_mean$timepoint <- factor(M2_stat_weekly_mean$timepoint, 
+                                        levels = c("0 days", "7 days", "14 days", 
+                                                   "21 days"))
+M2_stat_deadly_mean$test <- factor(M2_stat_deadly_mean$timepoint, 
+                                        levels = c("0 days", "14 days", "21 days"))
+```
+
+## Plot
+### Weekly endpoints
+```{r, message=FALSE, warning=FALSE}
+M1_fresh_weight_plot <- ggplot() +
+  theme_classic() + 
+  theme(legend.position="none",
+      plot.title = element_text(size=20), legend.text = element_text(size=15), 
+      axis.text.y = element_text(size=15), axis.title = element_text(size=15),
+      axis.text.x = element_blank(), axis.ticks.x = element_blank(),
+      strip.text = element_text(size=10)) +
+  labs(title = "Experiment 1", 
+       x=expression(),
+       y=expression(~ Fresh  ~ weight ~ "(" ~ g ~ ")")) +
+  guides(color = guide_legend(override.aes = list(size = 5))) +
+  scale_color_manual(values=c("darkgreen", "blue", "cyan3")) +
+  scale_fill_manual(values = c("darkgreen", "blue", "cyan3")) +
+  facet_grid(~ timepoint) +
+  geom_point(data = M1_stat_weekly_mean[M1_stat_weekly_mean$variable == "weight_spider_g",], 
+             aes(x=treatment, y=mean, col = treatment, fill = treatment), 
+             show.legend = TRUE, size=5, stroke = 1.5,
+             alpha = 0.5, shape = 21) +
+  geom_errorbar(data = M1_stat_weekly_mean[M1_stat_weekly_mean$variable == "weight_spider_g",],
+                aes(x=treatment, col = treatment,
+                    y=mean, ymin=mean-sd, ymax=mean+sd), 
+                show.legend = FALSE,
+                size = 1, alpha = 0.5) +
+  ylim(0, 0.05)
+
+M1_fresh_weight_plot
+
+M1_body_plot <- ggplot() +
+  theme_classic() + 
+  theme(legend.title = element_text(size=15), legend.position="bottom", 
+      plot.title = element_text(size=20), legend.text = element_text(size=15), 
+      axis.text.y = element_text(size=15), axis.title = element_text(size=15),
+      axis.text.x = element_blank(), axis.ticks.x = element_blank(),
+      strip.text = element_text(size=10)) +
+  labs(title = "", 
+       x=expression(),
+       y=expression(~ body ~ condition)) +
+  guides(color = guide_legend(override.aes = list(size = 5, shape = c(21,21,NA)))) +
+  scale_color_manual(values=c("darkgreen", "blue", "cyan3"),
+                     labels = c("algae", "oatmeal", "")) +
+  scale_fill_manual(values = c("darkgreen", "blue", "cyan3"),
+                    labels = c("algae", "oatmeal", "")) +
+  facet_grid(~ timepoint) +
+  geom_point(data = M1_stat_weekly_mean[M1_stat_weekly_mean$variable == "body_cond",], 
+             aes(x=treatment, y=mean, col = treatment, fill = treatment), 
+             show.legend = TRUE, size=5, stroke = 1.5,
+             alpha = 0.5, shape = 21) +
+  geom_errorbar(data = M1_stat_weekly_mean[M1_stat_weekly_mean$variable == "body_cond",],
+                aes(x=treatment, col = treatment,
+                    y=mean, ymin=mean-sd, ymax=mean+sd), 
+                show.legend = FALSE,
+                size = 1, alpha = 0.5) +
+    ylim(0, 1.8)
+
+M1_body_plot
+
+M1_growth_rate_plot <- ggplot() +
+  theme_classic() + 
+  theme(legend.position="none",
+      plot.title = element_text(size=20), legend.text = element_text(size=15), 
+      axis.text.y = element_text(size=15), axis.title = element_text(size=15),
+      axis.text.x = element_blank(), axis.ticks.x = element_blank(),
+      strip.text = element_text(size=10)) +
+  labs(title = "", 
+       x=expression(),
+       y=expression(~ Growth  ~ rate ~ "("~g~ ~week^-1~")")) +
+  guides(color = guide_legend(override.aes = list(size = 5))) +
+  scale_color_manual(values=c("darkgreen", "blue", "cyan3")) +
+  scale_fill_manual(values = c("darkgreen", "blue", "cyan3")) +
+  facet_grid(~ timepoint) +
+  geom_point(data = M1_stat_weekly_mean[M1_stat_weekly_mean$variable == "growth_rate" & M1_stat_weekly_mean$timepoint != "0 days",], 
+             aes(x=treatment, y=mean, col = treatment, fill = treatment), 
+             show.legend = TRUE, size=5, stroke = 1.5,
+             alpha = 0.5, shape = 21) +
+  geom_errorbar(data = M1_stat_weekly_mean[M1_stat_weekly_mean$variable == "growth_rate" & M1_stat_weekly_mean$timepoint != "0 days",],
+                aes(x=treatment, col = treatment,
+                    y=mean, ymin=mean-sd, ymax=mean+sd), 
+                show.legend = FALSE,
+                size = 1, alpha = 0.5) +
+  ylim(-0.3, 0.3)
+
+M1_growth_rate_plot
+
+M2_fresh_weight_plot <- ggplot() +
+  theme_classic() + 
+  theme(legend.position="none",
+      plot.title = element_text(size=20), legend.text = element_text(size=15), 
+      axis.text.y = element_text(size=15), axis.title = element_text(size=15),
+      axis.text.x = element_blank(), axis.ticks.x = element_blank(),
+      strip.text = element_text(size=10)) +
+  labs(title = "Experiment 2", 
+       x=expression(),
+       y=expression()) +
+  guides(color = guide_legend(override.aes = list(size = 5))) +
+  scale_color_manual(values=c("darkolivegreen3", "blue", "cyan3")) +
+  scale_fill_manual(values = c("darkolivegreen3", "blue", "cyan3")) +
+  facet_grid(~ timepoint) +
+  geom_point(data = M2_stat_weekly_mean[M2_stat_weekly_mean$variable == "weight_spider_g",], 
+             aes(x=treatment, y=mean, col = treatment, fill = treatment), 
+             show.legend = TRUE, size=5, stroke = 1.5,
+             alpha = 0.5, shape = 21) +
+  geom_errorbar(data = M2_stat_weekly_mean[M2_stat_weekly_mean$variable == "weight_spider_g",],
+                aes(x=treatment, col = treatment,
+                    y=mean, ymin=mean-sd, ymax=mean+sd), 
+                show.legend = FALSE,
+                size = 1, alpha = 0.5) +
+  ylim(0, 0.05)
+
+M2_fresh_weight_plot
+
+M2_body_plot <- ggplot() +
+  theme_classic() + 
+  theme(legend.title = element_blank(), legend.position="bottom", 
+      plot.title = element_text(size=20), legend.text = element_text(size=15), 
+      axis.text.y = element_text(size=15), axis.title = element_text(size=15),
+      axis.text.x = element_blank(), axis.ticks.x = element_blank(),
+      strip.text = element_text(size=10)) +
+  labs(title = "", 
+       x=expression(),
+       y=expression()) +
+  guides(color = guide_legend(override.aes = list(size = 5, 
+                                                  shape = c(21,NA,21)))) +
+  scale_color_manual(values=c("darkolivegreen3", "blue", "cyan3"),
+                     labels = c("leaves", "", "fishfood")) +
+  scale_fill_manual(values = c("darkolivegreen3", "blue", "cyan3"),
+                    labels = c("leaves", "", "fishfood")) +
+  facet_grid(~ timepoint) +
+  geom_point(data = M2_stat_weekly_mean[M2_stat_weekly_mean$variable == "body_cond",], 
+             aes(x=treatment, y=mean, col = treatment, fill = treatment), 
+             show.legend = TRUE, size=5, stroke = 1.5,
+             alpha = 0.5, shape = 21) +
+  geom_errorbar(data = M2_stat_weekly_mean[M2_stat_weekly_mean$variable == "body_cond",],
+                aes(x=treatment, col = treatment,
+                    y=mean, ymin=mean-sd, ymax=mean+sd), 
+                show.legend = FALSE,
+                size = 1, alpha = 0.5) +
+    ylim(0, 1.8)
+
+M2_body_plot
+
+M2_growth_rate_plot <- ggplot() +
+  theme_classic() + 
+  theme(legend.position="none",
+      plot.title = element_text(size=20), legend.text = element_text(size=15), 
+      axis.text.y = element_text(size=15), axis.title = element_text(size=15),
+      axis.text.x = element_blank(), axis.ticks.x = element_blank(),
+      strip.text = element_text(size=10)) +
+  labs(title = "", 
+       x=expression(),
+       y=expression()) +
+  guides(color = guide_legend(override.aes = list(size = 5))) +
+  scale_color_manual(values=c("darkolivegreen3", "blue", "cyan3")) +
+  scale_fill_manual(values = c("darkolivegreen3", "blue", "cyan3")) +
+  facet_grid(~ timepoint) +
+  geom_point(data = M2_stat_weekly_mean[M2_stat_weekly_mean$variable == "growth_rate" & M2_stat_weekly_mean$timepoint != "0 days",], 
+             aes(x=treatment, y=mean, col = treatment, fill = treatment), 
+             show.legend = TRUE, size=5, stroke = 1.5,
+             alpha = 0.5, shape = 21) +
+  geom_errorbar(data = M2_stat_weekly_mean[M2_stat_weekly_mean$variable == "growth_rate" & M2_stat_weekly_mean$timepoint != "0 days",],
+                aes(x=treatment, col = treatment,
+                    y=mean, ymin=mean-sd, ymax=mean+sd), 
+                show.legend = FALSE,
+                size = 1, alpha = 0.5) +
+  ylim(-0.3, 0.3)
+
+M2_growth_rate_plot
+
+
+weekly_endpoints_plot <- ggarrange(M1_fresh_weight_plot, M2_fresh_weight_plot,
+                                   M1_growth_rate_plot, M2_growth_rate_plot,
+                                   M1_body_plot, M2_body_plot,
+                  labels = c("A", "B", "C", "D", "E", "F"),
+                  ncol = 2, nrow = 3)
+
+#png(filename="weekly_endpoints_plot.png", width=10, height=15, units="in", res=300)
+weekly_endpoints_plot
+#dev.off()
+```
+
+### Deadly endpoints
+```{r, message=FALSE, warning=FALSE}
+M1_weight_plot <- ggplot() +
+  theme_classic() + 
+  theme(legend.position="none",
+      plot.title = element_text(size=20), legend.text = element_text(size=15), 
+      axis.text.y = element_text(size=15), axis.title = element_text(size=15),
+      axis.text.x = element_blank(), axis.ticks.x = element_blank(),
+      strip.text = element_text(size=10)) +
+  labs(title = "Experiment 1", 
+       x=expression(),
+       y=expression(~ dry ~ weight ~ "(" ~ mg ~ ")")) +
+  guides(color = guide_legend(override.aes = list(size = 5))) +
+  scale_color_manual(values=c("darkgreen", "blue", "cyan3")) +
+  scale_fill_manual(values = c("darkgreen", "blue", "cyan3")) +
+  facet_grid(~ timepoint) +
+  geom_point(data = M1_stat_deadly_mean[M1_stat_deadly_mean$variable == "dry_weight_mg",], 
+             aes(x=treatment, y=mean, col = treatment, fill = treatment), 
+             show.legend = TRUE, size=5, stroke = 1.5,
+             alpha = 0.5, shape = 21) +
+  geom_errorbar(data = M1_stat_deadly_mean[M1_stat_deadly_mean$variable == "dry_weight_mg",],
+                aes(x=treatment, col = treatment,
+                    y=mean, ymin=mean-sd, ymax=mean+sd), 
+                show.legend = FALSE,
+                size = 1, alpha = 0.5) +
+ ylim(0, 10)
+
+M1_weight_plot
+
+M1_R_e_ne_plot <- ggplot() +
+  theme_classic() + 
+  theme(legend.position="none",
+      plot.title = element_text(size=20), legend.text = element_text(size=15), 
+      axis.text.y = element_text(size=15), axis.title = element_text(size=15),
+      axis.text.x = element_blank(), axis.ticks.x = element_blank(),
+      strip.text = element_text(size=10)) +
+  labs(title = "", 
+       x=expression(),
+       y=expression(~ proportional ~ encapsulation  ~ area)) +
+  guides(color = guide_legend(override.aes = list(size = 5))) +
+  scale_color_manual(values=c("darkgreen", "blue", "cyan3")) +
+  scale_fill_manual(values = c("darkgreen", "blue", "cyan3")) +
+  facet_grid(~ timepoint) +
+  geom_point(data = M1_stat_deadly_mean[M1_stat_deadly_mean$variable == "mean_R_e_ne",], 
+             aes(x=treatment, y=mean, col = treatment, fill = treatment), 
+             show.legend = TRUE, size=5, stroke = 1.5,
+             alpha = 0.5, shape = 21) +
+  geom_errorbar(data = M1_stat_deadly_mean[M1_stat_deadly_mean$variable == "mean_R_e_ne",],
+                aes(x=treatment, col = treatment,
+                    y=mean, ymin=mean-sd, ymax=mean+sd), 
+                show.legend = FALSE,
+                size = 1, alpha = 0.5) +
+    ylim(0, 2.5)
+
+M1_R_e_ne_plot
+
+M1_area_encapsulation_plot <- ggplot() +
+  theme_classic() + 
+  theme(legend.title = element_text(size=15), legend.position="bottom", 
+      plot.title = element_text(size=20), legend.text = element_text(size=15), 
+      axis.text.y = element_text(size=15), axis.title = element_text(size=15),
+      axis.text.x = element_blank(), axis.ticks.x = element_blank(),
+      strip.text = element_text(size=10)) +
+  labs(title = "", 
+       x=expression(),
+       y=expression(~ area ~ of ~ encapsulation ~ "(" ~ mm^2 ~ ")")) +
+  guides(color = guide_legend(override.aes = list(size = 5, shape = c(21,21,NA)))) +
+  scale_color_manual(values=c("darkgreen", "blue", "cyan3"),
+                     labels = c("algae", "oatmeal", "")) +
+  scale_fill_manual(values = c("darkgreen", "blue", "cyan3"),
+                    labels = c("algae", "oatmeal", "")) +
+  facet_grid(~ timepoint) +
+  geom_point(data = M1_stat_deadly_mean[M1_stat_deadly_mean$variable == "mean_area_encapsulation",], 
+             aes(x=treatment, y=mean, col = treatment, fill = treatment), 
+             show.legend = TRUE, size=5, stroke = 1.5,
+             alpha = 0.5, shape = 21) +
+  geom_errorbar(data = M1_stat_deadly_mean[M1_stat_deadly_mean$variable == "mean_area_encapsulation",],
+                aes(x=treatment, col = treatment,
+                    y=mean, ymin=mean-sd, ymax=mean+sd), 
+                show.legend = FALSE,
+                size = 1, alpha = 0.5) +
+   ylim(-0.03, 0.09)
+  
+
+M1_area_encapsulation_plot
+
+M2_weight_plot <- ggplot() +
+  theme_classic() + 
+  theme(legend.position="none",
+      plot.title = element_text(size=20), legend.text = element_text(size=15), 
+      axis.text.y = element_text(size=15), axis.title = element_text(size=15),
+      axis.text.x = element_blank(), axis.ticks.x = element_blank(),
+      strip.text = element_text(size=10)) +
+  labs(title = "Experiment 2", 
+       x=expression(),
+       y=expression()) +
+  guides(color = guide_legend(override.aes = list(size = 5))) +
+  scale_color_manual(values=c("darkolivegreen3", "blue", "cyan3")) +
+  scale_fill_manual(values = c("darkolivegreen3", "blue", "cyan3")) +
+  facet_grid(~ timepoint) +
+  geom_point(data = M2_stat_deadly_mean[M2_stat_deadly_mean$variable == "dry_weight_mg",], 
+             aes(x=treatment, y=mean, col = treatment, fill = treatment), 
+             show.legend = TRUE, size=5, stroke = 1.5,
+             alpha = 0.5, shape = 21) +
+  geom_errorbar(data = M2_stat_deadly_mean[M2_stat_deadly_mean$variable == "dry_weight_mg",],
+                aes(x=treatment, col = treatment,
+                    y=mean, ymin=mean-sd, ymax=mean+sd), 
+                show.legend = FALSE,
+                size = 1, alpha = 0.5) +
+ ylim(0, 10)
+
+M2_weight_plot
+
+M2_R_e_ne_plot <- ggplot() +
+  theme_classic() + 
+  theme(legend.position="none",
+      plot.title = element_text(size=20), legend.text = element_text(size=15), 
+      axis.text.y = element_text(size=15), axis.title = element_text(size=15),
+      axis.text.x = element_blank(), axis.ticks.x = element_blank(),
+      strip.text = element_text(size=10)) +
+  labs(title = "", 
+       x=expression(),
+       y=expression()) +
+  guides(color = guide_legend(override.aes = list(size = 5))) +
+  scale_color_manual(values=c("darkolivegreen3", "blue", "cyan3")) +
+  scale_fill_manual(values = c("darkolivegreen3", "blue", "cyan3")) +
+  facet_grid(~ timepoint) +
+  geom_point(data = M2_stat_deadly_mean[M2_stat_deadly_mean$variable == "mean_R_e_ne",], 
+             aes(x=treatment, y=mean, col = treatment, fill = treatment), 
+             show.legend = TRUE, size=5, stroke = 1.5,
+             alpha = 0.5, shape = 21) +
+  geom_errorbar(data = M2_stat_deadly_mean[M2_stat_deadly_mean$variable == "mean_R_e_ne",],
+                aes(x=treatment, col = treatment,
+                    y=mean, ymin=mean-sd, ymax=mean+sd), 
+                show.legend = FALSE,
+                size = 1, alpha = 0.5) +
+    ylim(0, 2.5)
+
+M2_R_e_ne_plot
+
+M2_area_encapsulation_plot <- ggplot() +
+  theme_classic() + 
+  theme(legend.title = element_blank(), legend.position="bottom", 
+      plot.title = element_text(size=20), legend.text = element_text(size=15), 
+      axis.text.y = element_text(size=15), axis.title = element_text(size=15),
+      axis.text.x = element_blank(), axis.ticks.x = element_blank(),
+      strip.text = element_text(size=10)) +
+  labs(title = "", 
+       x=expression(),
+       y=expression()) +
+  guides(color = guide_legend(override.aes = list(size = 5, shape = c(21,NA,21)))) +
+  scale_color_manual(values=c("darkolivegreen3", "blue", "cyan3"),
+                     labels = c("leaves", "", "fish food")) +
+  scale_fill_manual(values = c("darkolivegreen3", "blue", "cyan3"),
+                    labels = c("leaves", "", "fish food")) +
+  facet_grid(~ timepoint) +
+  geom_point(data = M2_stat_deadly_mean[M2_stat_deadly_mean$variable == "mean_area_encapsulation",], 
+             aes(x=treatment, y=mean, col = treatment, fill = treatment), 
+             show.legend = TRUE, size=5, stroke = 1.5,
+             alpha = 0.5, shape = 21) +
+  geom_errorbar(data = M2_stat_deadly_mean[M2_stat_deadly_mean$variable == "mean_area_encapsulation",],
+                aes(x=treatment, col = treatment,
+                    y=mean, ymin=mean-sd, ymax=mean+sd), 
+                show.legend = FALSE,
+                size = 1, alpha = 0.5) +
+   ylim(-0.03, 0.09)
+
+
+M2_area_encapsulation_plot
+
+deadly_endpoints_plot <- ggarrange(M1_weight_plot, M2_weight_plot,
+                                   M1_R_e_ne_plot, M2_R_e_ne_plot,
+                                   M1_area_encapsulation_plot,
+                                   M2_area_encapsulation_plot,
+                  labels = c("A", "B", "C", "D", "E", "F"),
+                  ncol = 2, nrow = 3)
+
+#png(filename="deadly_endpoints_plot.png", width=10, height=15, units="in", res=300)
+deadly_endpoints_plot
+#dev.off()
+```
+
+# Plot all PUFA
+## Preparation
+
+```{r, message=FALSE, warning=FALSE}
+M1_microcosm_mean <- filter(microcosm_stat, experiment != "M2")
+M2_microcosm_mean <- filter(microcosm_stat, experiment != "M1")
+```
+
+Add time point M1
+```{r, message=FALSE, warning=FALSE}
+M1_microcosm_mean$timepoint <- with(M1_microcosm_mean, 
+       ifelse(date_endpoint < "2019-05-03", "0 days",
+       ifelse("2019-05-03" <= date_endpoint & date_endpoint <= "2019-05-22", 
+              "23 days", "44 days")))
+```
+
+Add time point M2
+For leaves date is time, when leaves were taken out of stream. Leaves used in experiment at other date/time point:
+
+* 2019-06-04 and 2019-06-18: t2 
+* 2019-07-02 and 2019-07-16: t3
+
+```{r, message=FALSE, warning=FALSE}
+M2_microcosm_mean$timepoint <- with(M2_microcosm_mean, 
+       ifelse(date_endpoint == "2019-07-08", "0 days",
+       ifelse(date_endpoint == "2019-07-22", "14 days",
+       ifelse(date_endpoint == "2019-06-04", "14 days", 
+       ifelse(date_endpoint == "2019-06-18", "14 days",
+       ifelse(date_endpoint == "2019-07-12", "14 days",
+       ifelse(date_endpoint == "2019-07-19", "14 days",      
+       ifelse(date_endpoint == "2019-07-02", "21 days",
+       ifelse(date_endpoint == "2019-07-16", "21 days", 
+              "21 days")))))))))  
+```
+
+Assign start spiders to treatments as for NMDS
+```{r, message=FALSE, warning=FALSE}
+M1_microcosm_mean$treatment <- with(M1_microcosm_mean, 
+                                 ifelse(experiment_ID %in% M1_start_algae, "algae",
+                                 ifelse(experiment_ID %in% M1_start_oatmeal,
+                                        "oatmeal",
+                                 ifelse(experiment_ID %in% M1_start_fishfood,
+                                        "fishfood",
+                                        treatment))))
+
+M2_microcosm_mean$treatment <- with(M2_microcosm_mean, 
+                                 ifelse(experiment_ID %in% M2_start_leaves, "leaves",
+                                 ifelse(experiment_ID %in% M2_start_oatmeal,
+                                        "oatmeal",
+                                 ifelse(experiment_ID %in% M2_start_fishfood,
+                                        "fishfood",
+                                        treatment))))
+```
+
+Get mean and sd for PUFAs per organism, treatment, experiment and time point
+```{r, message=FALSE, warning=FALSE}
+M1_microcosm_mean <- select(M1_microcosm_mean, -c("date_endpoint", "dry_weight_mg",
+                                                "experiment_ID",
+                                                "spider_ID_experiment_ID"))
+M2_microcosm_mean <- select(M2_microcosm_mean, -c("date_endpoint", "dry_weight_mg",
+                                                "experiment_ID",
+                                                "spider_ID_experiment_ID"))
+
+M1_microcosm_mean <- reshape2::melt(M1_microcosm_mean, 
+                      id.vars = c("experiment", "Organism", "treatment",
+                                  "timepoint"))
+M2_microcosm_mean <- reshape2::melt(M2_microcosm_mean, 
+                      id.vars = c("experiment", "Organism", "treatment",
+                                  "timepoint"))
+
+M1_microcosm_mean <- ddply(M1_microcosm_mean, c("experiment", "Organism",
+                                              "treatment", "timepoint", "variable"),
+                          summarise, mean = mean(value), sd = sd(value))
+M2_microcosm_mean <- ddply(M2_microcosm_mean, c("experiment", "Organism", "treatment",
+                                              "timepoint", "variable"), 
+                          summarise, mean = mean(value), sd = sd(value))
+```
+
+Rename
+```{r, message=FALSE, warning=FALSE}
+M1_microcosm_mean$treatment <- gsub("fishfood", "fish food",
+                                     M1_microcosm_mean$treatment)
+M1_microcosm_mean$Organism <- gsub("fishfood", "fish food", 
+                                    M1_microcosm_mean$Organism)
+M1_microcosm_mean$Organism <- gsub("chiro", "chironomids", 
+                                    M1_microcosm_mean$Organism)
+
+M2_microcosm_mean$treatment <- gsub("fishfood", "fish food",
+                                     M2_microcosm_mean$treatment)
+M2_microcosm_mean$Organism <- gsub("fishfood", "fish food", 
+                                    M2_microcosm_mean$Organism)
+M2_microcosm_mean$Organism <- gsub("chiro", "chironomids", 
+                                    M2_microcosm_mean$Organism)
+```
+
+Add column with trophic level
+```{r, message=FALSE, warning=FALSE}
+M1_microcosm_mean$trophic_level <- with(M1_microcosm_mean, ifelse(Organism == "spider", "spider", ifelse(Organism == "chironomids", "chironomids", "basic food source")))
+
+M2_microcosm_mean$trophic_level <- with(M2_microcosm_mean, ifelse(Organism == "spider", "spider", ifelse(Organism == "chironomids", "chironomids", "basic food source")))
+```
+
+Reorder factors
+```{r, message=FALSE, warning=FALSE}
+M1_microcosm_mean$treatment <- factor(M1_microcosm_mean$treatment, 
+                                       levels = c("algae", "oatmeal", "fish food"))
+
+M1_microcosm_mean$Organism <- factor(M1_microcosm_mean$Organism, 
+                                      levels = c("algae", "oatmeal", "fish food",
+                                                 "chironomids",
+                                                 "spider"))
+
+M1_microcosm_mean$trophic_level <- factor(M1_microcosm_mean$trophic_level, 
+                                         levels = c("basic food source",
+                                                    "chironomids", "spider"))
+
+M2_microcosm_mean$treatment <- factor(M2_microcosm_mean$treatment, 
+                                       levels = c("leaves", "oatmeal", "fish food"))
+
+M2_microcosm_mean$Organism <- factor(M2_microcosm_mean$Organism, 
+                                      levels = c("leaves", "oatmeal", "fish food",
+                                                 "chironomids",
+                                                 "spider"))
+
+M2_microcosm_mean$trophic_level <- factor(M2_microcosm_mean$trophic_level, 
+                                         levels = c("basic food source",
+                                                    "chironomids", "spider"))
+```
+
+Unit treatment and Organsim column
+```{r, message=FALSE, warning=FALSE}
+M1_microcosm_mean <- unite(M1_microcosm_mean, treat_orga, treatment, Organism, 
+                            remove = FALSE)
+
+M2_microcosm_mean <- unite(M2_microcosm_mean, treat_orga, treatment, Organism, 
+                            remove = FALSE)
+
+```
+
+Reorder factors
+```{r, message=FALSE, warning=FALSE}
+M1_microcosm_mean$treat_orga <- factor(M1_microcosm_mean$treat_orga, 
+                                      levels = c("algae_algae",
+                                                 "oatmeal_oatmeal", 
+                                                 "fish food_fish food",
+                                                 
+                                                 "algae_chironomids",
+                                                 "oatmeal_chironomids",
+                                                 "fish food_chironomids",
+                                                 
+                                                 "algae_spider", 
+                                                 "oatmeal_spider",
+                                                 "fish food_spider"))
+
+M2_microcosm_mean$treat_orga <- factor(M2_microcosm_mean$treat_orga, 
+                                      levels = c("leaves_leaves",
+                                                 "oatmeal_oatmeal", 
+                                                 "fish food_fish food",
+                                                 
+                                                 "leaves_chironomids",
+                                                 "oatmeal_chironomids",
+                                                 "fish food_chironomids",
+                                                 
+                                                 "leaves_spider", 
+                                                 "oatmeal_spider",
+                                                 "fish food_spider"))
+```
+
+Chose 18:3n-3 (ALA), 18:2n-6c (LIN), 20:4n-6 (ARA) and 20:5n-3 (EPA) 
+```{r, message=FALSE, warning=FALSE}
+M1_microcosm_export <- filter(M1_microcosm_mean, variable %in% 
+                            c("18:3n-3", "18:2n-6c", "20:4n-6", "20:5n-3"))
+
+M2_microcosm_export <- filter(M2_microcosm_mean, variable %in% 
+                            c("18:3n-3", "18:2n-6c", "20:4n-6", "20:5n-3"))
+```
+
+## Plot
+```{r, message=FALSE, warning=FALSE}
+M1_LIN_ALA_EPA_ARA <- ifelse(M1_microcosm_mean$variable  %in% 
+                            c("18:3n-3", "18:3n-6", 
+                              "18:2n-6c", "18:2n-6t", 
+                              "20:4n-6", "20:5n-3",
+                              "22:6n-3"), "black",
+                            "grey")
+M2_LIN_ALA_EPA_ARA <- ifelse(M2_microcosm_mean$variable  %in% 
+                            c("18:3n-3", "18:3n-6", 
+                              "18:2n-6c", "18:2n-6t",
+                              "20:4n-6", "20:5n-3",
+                              "22:6n-3"), "black",
+                            "grey")
+
+M1_all_pufa <- ggplot() +
+  theme_classic() + 
+  theme(legend.position="bottom",
+      plot.title = element_text(size=20), legend.text = element_text(size=20),
+      legend.title = element_text(size=20),
+      axis.text.y = element_text(size=15, colour = M1_LIN_ALA_EPA_ARA), 
+      axis.title = element_text(size=20),
+      axis.text.x = element_text(size=20),
+      strip.text = element_text(size=20)) +
+  labs(title = "Experiment 1", 
+       x=expression(~ proportion ~ of ~ total ~ PUFA),
+       y=expression()) +
+  guides(color = guide_legend(override.aes = list(size = 5))) +
+  scale_color_manual(values=c("darkgreen", "blue", "cyan3")) +
+  scale_fill_manual(values = c("darkgreen", "blue", "cyan3")) +
+ facet_grid(timepoint ~ trophic_level) +
+  geom_bar(data = M1_microcosm_mean, 
+             aes(x=mean, y=variable, col = treatment, 
+             fill = treatment), position = "dodge",
+             show.legend = TRUE, alpha = 0.8, lwd=0.1, stat = "identity") +
+  geom_errorbar(data = M1_microcosm_mean,
+                aes(x=mean, col = treatment,
+                    y=variable, xmin=mean, xmax=mean+sd), 
+                show.legend = FALSE, alpha = 0.8, position = "dodge")
+#png(filename="M1_all_pufa.png", width=15, height=15, units="in", res=300)
+M1_all_pufa
+# dev.off()
+
+M2_all_pufa <- ggplot() +
+  theme_classic() + 
+   theme(legend.position="bottom",
+      plot.title = element_text(size=20), legend.text = element_text(size=20),
+      legend.title = element_text(size=20),
+      axis.text.y = element_text(size=15, colour = M2_LIN_ALA_EPA_ARA), 
+      axis.title = element_text(size=20),
+      axis.text.x = element_text(size=20),
+      strip.text = element_text(size=20)) +
+  labs(title = "Experiment 2", 
+       x=expression(~ proportion ~ of ~ total ~ PUFA),
+       y=expression()) +
+  guides(color = guide_legend(override.aes = list(size = 5))) +
+  scale_color_manual(values=c("darkolivegreen3", "blue", "cyan3")) +
+  scale_fill_manual(values = c("darkolivegreen3", "blue", "cyan3")) +
+ facet_grid(timepoint ~ trophic_level) +
+  geom_bar(data = M2_microcosm_mean, 
+             aes(x=mean, y=variable, col = treatment, 
+             fill = treatment), position = "dodge",
+             show.legend = TRUE, alpha = 0.8, lwd=0.1, stat = "identity") +
+  geom_errorbar(data = M2_microcosm_mean,
+                aes(x=mean, col = treatment,
+                    y=variable, xmin=mean, xmax=mean+sd), 
+                show.legend = FALSE, alpha = 0.8, position = "dodge")
+
+#png(filename="M2_all_pufa.png", width=15, height=15, units="in", res=300)
+M2_all_pufa
+#dev.off()
+```
+
+
+# Plot temperature variation during experiments
+## Preparation
+
+* Temperature in °C
+
+Load data
+```{r, message=FALSE, warning=FALSE}
+M1_temp_files = list.files(pattern="*_temp_microcosm_1", recursive = TRUE)
+
+M1_temp_data_list = lapply(setNames(M1_temp_files, make.names(gsub("temp_microcosm_1/|_temp_microcosm_1.csv", "", M1_temp_files))), read.csv, stringsAsFactors=TRUE)
+
+M2_temp_files = list.files(pattern="*_temp_microcosm_2.csv", recursive = TRUE)
+
+M2_temp_data_list = lapply(setNames(M2_temp_files, make.names(gsub("temp_microcosm_2/|_temp_microcosm_2.csv", "", M2_temp_files))), read.csv, stringsAsFactors=TRUE)
+```
+
+Add name of aerarium to data and get data frame
+```{r, message=FALSE, warning=FALSE}
+for (i in c(1:16))
+{
+M1_temp_data_list[[i]]$aerarium <- with(M1_temp_data_list[[i]], names(M1_temp_data_list[i]))
+}
+
+M1_temp <- do.call(rbind, M1_temp_data_list)
+
+for (i in c(1:16))
+{
+M2_temp_data_list[[i]]$aerarium <- with(M2_temp_data_list[[i]], names(M2_temp_data_list[i]))
+}
+
+M2_temp <- do.call(rbind, M2_temp_data_list)
+
+M2_temp$aerarium <- gsub("X", "", M2_temp$aerarium)
+```
+
+Add experiment
+```{r, message=FALSE, warning=FALSE}
+M1_temp$experiment <- "M1"
+
+M2_temp$experiment <- "M2"
+```
+
+Bind temperature data
+```{r, message=FALSE, warning=FALSE}
+temp <- rbind(M1_temp, M2_temp)
+```
+
+Rename Datum.Zeit
+```{r, message=FALSE, warning=FALSE}
+names(temp)[2] <- "date_time"
+```
+
+Put date_time into POSIXct format
+```{r, message=FALSE, warning=FALSE}
+temp$date_time <- parse_date_time(temp$date_time, "%m.%d.%y %I:%M:%S %p")
+```
+
+Round time on day
+```{r, message=FALSE, warning=FALSE}
+temp$date_time <- round_date(temp$date_time, unit = "day")
+```
+
+Remove NAs in temperature
+```{r, message=FALSE, warning=FALSE}
+temp <- filter(temp, !is.na(Temp))
+```
+
+Get mean and sd per date and time
+```{r, message=FALSE, warning=FALSE}
+temp_mean <- ddply(temp, c("date_time", "experiment"), 
+                   summarise, mean_temp = mean(Temp), sd_temp = sd(Temp))
+```
+
+Remove date_time, because experiment ended before
+```{r, message=FALSE, warning=FALSE}
+#temp_mean <- filter(temp_mean, date_time < "2019-07-29 16:00:00")
+temp_mean <- filter(temp_mean, date_time < "2019-07-30")
+```
+
+Add day of the experiment
+```{r, message=FALSE, warning=FALSE}
+temp_mean$day <- with(temp_mean, round(ifelse(experiment == "M1",  difftime(date_time, "2019-04-30", units="days"), difftime(date_time, "2019-07-08", units="days")), digits = 0))
+```
+
+Rename experiment
+```{r, message=FALSE, warning=FALSE}
+temp_mean$experiment <- gsub("M", "", temp_mean$experiment)
+```
+
+## Plot temperature profile
+```{r, message=FALSE, warning=FALSE}
+temp_plot <- ggplot() +
+  theme_classic() + 
+  theme(legend.title = element_text(size=15), legend.position="bottom", plot.title = element_text(size=20), legend.text = element_text(size=20), axis.text = element_text(size=15), axis.title = element_text(size=15)) +
+guides(color = guide_legend(override.aes = list(size = 5))) +
+scale_color_manual(values=c("darkgreen", "blue")) +
+scale_fill_manual(values = c("darkgreen", "blue")) +
+geom_ribbon(data=temp_mean, 
+              aes(x=day, y=mean_temp, fill = experiment,
+                  ymin=(mean_temp - sd_temp), ymax=(mean_temp + sd_temp)), 
+              alpha = 0.1, show.legend = TRUE) +
+geom_line(data=temp_mean, 
+            aes(x=day, y=mean_temp, col = experiment)) +
+  labs(title = "Temperature profile during experiments", 
+       x=expression(day ~ of ~ experiment),
+       y=expression(temperature ~"("~"°"~ ~C~")")) +
+  ylim(0,45)
+
+#png(filename="temp_plot.png", width=10, height=5, units="in", res=300)
+temp_plot
+#dev.off()
+```

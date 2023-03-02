@@ -1,0 +1,1192 @@
+---
+title: "Trophic transfer of polyunsaturated fatty acids across the aquatic-terrestrial interface: an experimental tritrophic food chain approach: PUFA concentration"
+output:
+  html_document:
+    figure_caption: yes
+    highlight: tango
+    number_sections: yes
+    toc: yes
+    toc_depth: 4
+  pdf_document:
+    toc: yes
+    toc_depth: '4'
+  word_document:
+    toc: yes
+editor_options:
+  chunk_output_type: console
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(tidy.opts=list(width.cutoff=80), tidy=TRUE)
+```
+# Required packages
+```{r, message=FALSE, warning=FALSE}
+library(data.table)
+#library(anytime)
+
+library(dplyr) # Data wrangling
+library(tidyr) # Data wrangling
+library(plyr) # Data wrangling
+library(ggplot2) # plots
+```
+
+# Set path
+```{r, message=FALSE, warning=FALSE}
+path <-"/Users/katharinafrisch/Nextcloud/Uni/Paper/Microcosm Paper/Oikos_submission/1_submission/ohler_microcosm/concentration_pufa"
+setwd(path)
+```
+# Calibration
+## Prepare data
+
+Load data of standards 
+```{r, message=FALSE, warning=FALSE}
+standards <- read.table("standards.csv", header = TRUE, sep = ",",na.strings = c("NR", "NA"), stringsAsFactors = FALSE, strip.white = TRUE) 
+```
+Calibration 5 (04.02.2020): Data for S9-S11 missing, because measurements did not work
+
+Remove failed standard measurements
+
+* 28.01.2020 22_41_1555: batch 3a to check retention time shift, but bad quality
+
+* 06.01.2020 13_14_143: S2 from batch 1, very bad quality 
+
+* 05.02.2020 08_55_338: S8 from batch 5, very bad quality (GC broke during measurement)
+
+* 26.11.2020 19_00_5713: S2 from batch 12, very bad quality
+
+
+```{r, message=FALSE, warning=FALSE}
+standards <- filter(standards, Time != "28.01.2020 22_41_1555")
+standards <- filter(standards, Time != "06.01.2020 13_14_143")
+standards <- filter(standards, Time != "05.02.2020 08_55_338")
+standards <- filter(standards, Time != "26.11.2020 19_00_5713")
+```
+
+Check calibration curve from 04.02 - 05.02.2020
+
+* generally carefully‚ with calibration curve of 04.02.2020 - 05.02.2020, since GC broke during this calibration
+
+Check of chromatograms showed:
+* "04.02.2020 11_22_591": Bad quality, do not use  
+* "04.02.2020 12_18_262": first peaks bad quality  
+* "04.02.2020 16_09_493": okay  
+* "04.02.2020 17_06_434": first peaks bad quality 
+* "04.02.2020 18_02_265": okay  
+* "04.02.2020 18_58_066": okay, but first peaks could be better  
+* "04.02.2020 19_53_457": okay, but first peaks could be better  
+
+* "05.02.2020 23_45_3727": okay, but no part of calibration curve (can only be used to check RT shift, since GC was broken after S8 measurement)
+
+* to identify PUFA in samples only chromatograms with better quality will be used:
+* Remove: 04.02.2020 11_22_591, 04.02.2020 12_18_262, 04.02.2020 17_06_434
+
+```{r, message=FALSE, warning=FALSE}
+standards <- filter(standards, Time != "04.02.2020 11_22_591")
+standards <- filter(standards, Time != "04.02.2020 12_18_262")
+standards <- filter(standards, Time != "04.02.2020 17_06_434")
+```
+
+Name peaks in standards
+Count how many peaks detected (info needed to split table in list)
+```{r, message=FALSE, warning=FALSE}
+count <- count(standards, c("Time"))
+names(count)[2] <- c("no_peaks")
+seq <- c(count$no_peaks)
+standards <- left_join(standards, count, by = "Time")
+
+"%notlike%" <- Negate("%like%")
+
+time_06_jan <- filter(standards, Time %like% "06.01.2020")
+time_jan_feb_mar <- filter(standards, Time %like% "03.2020" | Time %like% "02.2020" | Time %like% "01.2020")
+time_jan_feb_mar <- filter(time_jan_feb_mar, Time %notlike% "06.01.2020")
+time_may <- filter(standards, Time %like% "05.2020") 
+time_nov <- filter(standards, Time %like% "11.2020") 
+
+time_06_jan <- c(unique(time_06_jan$Time)) # 11
+time_jan_feb_mar <- c(unique(time_jan_feb_mar$Time)) # 74
+time_may <- c(unique(time_may$Time)) # 15
+time_nov <- c(unique(time_nov$Time)) # 26
+time_may_nov <- c(time_may, time_nov)
+
+length((unique(standards$Time))) #126: sum of single times add up to sum of all times
+```
+
+Get list
+```{r, message=FALSE, warning=FALSE}
+standard_list <- split(standards, f = c(standards$Time), seq(along.with = seq))
+```
+
+Sort by Time and decreasing RT
+```{r, message=FALSE, warning=FALSE}
+for (i in c(1:126))
+{
+standard_list[[i]] <- arrange(standard_list[[i]], desc(RT))
+}
+```
+
+Get name of PUFAs in right order
+```{r, message=FALSE, warning=FALSE}
+name_34 <- c("24:1n-9", "24:0", "22:6n-3", "23:0", "22:2n-6", "22:1n-9", "22:0", "20:5n-3", "20:3n-3", "21:0", "20:4n-6", "20:3n-6", "20:2n-6", "20:1n-9", "20:0", "18:3n-3", "18:3n-6", "18:2n-6c", "18:2n-6t", "18:1n-7", "18:1n-9c", "18:1n-9t", "18:0", "17:1n-7", "17:0", "16:1n-7", "16:0", "15:1n-5", "15:0", "14:1n-5", "14:0", "13:0", "12:0", "11:0")
+
+name_33 <- c("24:1n-9", "24:0", "22:6n-3", "23:0", "22:2n-6", "22:1n-9", "22:0", "20:5n-3", "20:3n-3", "21:0", "20:4n-6", "20:3n-6", "20:2n-6", "20:1n-9", "20:0", "18:3n-3", "18:3n-6", "18:2n-6c", "18:2n-6t", "18:1n-7", "18:1n-9c", "18:1n-9t", "18:0", "17:1n-7", "17:0", "16:1n-7", "16:0", "15:1n-5", "15:0", "14:1n-5", "14:0", "13:0", "12:0")
+
+name_27 <- c("24:1n-9", "24:0", "22:6n-3", "23:0", "22:2n-6", "22:1n-9", "22:0", "20:5n-3", "20:3n-3", "21:0", "20:4n-6", "20:3n-6", "20:2n-6", "20:1n-9", "20:0", "18:3n-3", "18:3n-6", "18:2n-6c", "18:2n-6t", "18:1n-7", "18:1n-9c", "18:1n-9t", "18:0", "17:1n-7", "17:0", "16:1n-7", "16:0") # measurements in November (GC was broken inbetween and only PUFA higher than 16:0 could be identified)
+
+name_26 <- c("24:1n-9", "24:0", "22:6n-3", "23:0", "22:2n-6", "22:1n-9", "22:0", "20:5n-3", "20:3n-3", "21:0", "20:4n-6", "20:3n-6", "20:2n-6", "20:1n-9", "20:0", "18:3n-3", "18:3n-6", "18:2n-6c", "18:2n-6t", "18:1n-7", "18:1n-9c", "18:1n-9t", "18:0", "17:1n-7", "17:0", "16:1n-7") # measurement S1 batch 12 in November 
+```
+
+Add column with PUFA names
+```{r, message=FALSE, warning=FALSE}
+for (i in c(1:126))
+{
+standard_list[[i]]$name_pufa <- with(standard_list[[i]], 
+                                     ifelse(no_peaks == 34, name_34, 
+                                     ifelse(no_peaks == 33, name_33, 
+                                     ifelse(no_peaks == 27, name_27,
+                                     ifelse(no_peaks == 26, name_26,      
+                                            "NA")))))
+}
+```
+
+Add c1, V1 and V2 (dilution for calibration)
+
+* Supelco contains 37 FAMEs, we start quantification at C11:00 for measurements before November 2020 and after November 2020 at C16:0
+
+* 18:1n-7 ((11E)-11-octadecenoic acid methyl acid) manually added, because it occurs in samples and is not part of Supelco
+
+* 18:3n-3: manually added, it already is in Supelco, but concentration in Supelco lower as in samples 
+
+* 18:3n-3: in Supelco 201 microgramm per mL and manually added 223.75 microgramm per mL
+-> thus put at first "1" in column c1 as "place holder" and then calculation manually (in libre office, otherwise too much ifelse and so on)
+
+Add c1 (mass concentration of FAME in undiluted Supelco/standard) in microgramm per mL
+```{r, message=FALSE, warning=FALSE}
+for (i in c(1:126))
+{
+standard_list[[i]]$c1 <- with(standard_list[[i]], 
+                              ifelse(name_pufa == "11:0", 200, 
+                              ifelse(name_pufa == "12:0", 401, 
+                              ifelse(name_pufa == "13:0", 201, 
+                              ifelse(name_pufa == "14:0", 401, 
+                              ifelse(name_pufa == "14:1n-5", 201, 
+                              ifelse(name_pufa == "15:0", 200, 
+                              ifelse(name_pufa == "15:1n-5", 200, 
+                              ifelse(name_pufa == "16:0", 601, 
+                              ifelse(name_pufa == "16:1n-7", 201, 
+                              ifelse(name_pufa == "17:0", 201,
+                              ifelse(name_pufa == "17:1n-7", 200, 
+                              ifelse(name_pufa == "18:0", 401, 
+                              ifelse(name_pufa == "18:1n-9t", 200,
+                              ifelse(name_pufa == "18:1n-9c", 401,
+                              ifelse(name_pufa == "18:1n-7", 200,
+                              ifelse(name_pufa == "18:2n-6t", 201, 
+                              ifelse(name_pufa == "18:2n-6c", 201,
+                              ifelse(name_pufa == "18:3n-6", 201,
+                              ifelse(name_pufa == "18:3n-3", 1,
+                              ifelse(name_pufa == "20:0", 401, 
+                              ifelse(name_pufa == "20:1n-9", 201, 
+                              ifelse(name_pufa == "20:2n-6", 200, 
+                              ifelse(name_pufa == "20:3n-6", 202, 
+                              ifelse(name_pufa == "20:4n-6", 201, 
+                              ifelse(name_pufa == "21:0", 200, 
+                              ifelse(name_pufa == "20:3n-3", 200, 
+                              ifelse(name_pufa == "20:5n-3", 201, 
+                              ifelse(name_pufa == "22:0", 401, 
+                              ifelse(name_pufa == "22:1n-9", 201, 
+                              ifelse(name_pufa == "22:2n-6", 200,  
+                              ifelse(name_pufa == "23:0", 200, 
+                              ifelse(name_pufa == "22:6n-3", 201, 
+                              ifelse(name_pufa == "24:0", 401, 
+                              ifelse(name_pufa == "24:1n-9", 200,
+                              NA)))))))))))))))))))))))))))))))))))
+}
+```
+
+Add V1 (volume Supelco/standard used for dilution) in mL
+```{r, message=FALSE, warning=FALSE}
+for (i in c(1:126))
+{
+standard_list[[i]]$V1 <- with(standard_list[[i]],
+                         ifelse(Time %like% "06.01.2020" & 
+                                  runinfo %like% "S1 Supelco", 0.00125, 
+                         ifelse(Time %like% "06.01.2020" &
+                                  runinfo %like% "S2 Supelco", 0.00250,
+                         ifelse(Time %like% "06.01.2020" &
+                                  runinfo %like% "S3 Supelco", 0.00125,
+                         ifelse(Time %like% "06.01.2020" &
+                                  runinfo %like% "S4 Supelco", 0.00250,
+                         ifelse(Time %like% "06.01.2020" &
+                                  runinfo %like% "S5 Supelco", 0.00375,
+                         ifelse(Time %like% "06.01.2020" &
+                                  runinfo %like% "S6 Supelco", 0.00500,
+                         ifelse(Time %like% "06.01.2020" &
+                                  runinfo %like% "S7 Supelco", 0.00625,
+                         ifelse(Time %like% "06.01.2020" &
+                                  runinfo %like% "S8 Supelco", 0.00750,
+                         ifelse(Time %like% "06.01.2020" &
+                                  runinfo %like% "S9 Supelco", 0.00875,
+                         ifelse(Time %like% "06.01.2020" &
+                                  runinfo %like% "S10 Supelco", 0.01000,
+                         ifelse(Time %like% "06.01.2020" &
+                                  runinfo %like% "S11 Supelco", 0.01130,
+                         ifelse(Time %like% "06.01.2020" &
+                                  runinfo %like% "S12 Supelco", 0.01250,
+                         ifelse(Time %in% time_may_nov &
+                                  runinfo %like% "S1 Supelco", 0.00500, 
+                         ifelse(Time %in% time_may_nov &
+                                  runinfo %like% "S2 Supelco", 0.00500,
+                         ifelse(Time %in% time_may_nov &
+                                  runinfo %like% "S3 Supelco", 0.00750,
+                         ifelse(Time %in% time_may_nov &
+                                  runinfo %like% "S4 Supelco", 0.00500,
+                         ifelse(Time %in% time_may_nov &
+                                  runinfo %like% "S5 Supelco", 0.00630,
+                         ifelse(Time %in% time_may_nov &
+                                  runinfo %like% "S6 Supelco", 0.00750,
+                         ifelse(Time %in% time_may_nov &
+                                  runinfo %like% "S7 Supelco", 0.00880,
+                         ifelse(Time %in% time_may_nov &
+                                  runinfo %like% "S8 Supelco", 0.01000,
+                         ifelse(Time %in% time_may_nov &
+                                  runinfo %like% "S9 Supelco", 0.01130,
+                         ifelse(Time %in% time_may_nov &
+                                  runinfo %like% "S10 Supelco", 0.01250,
+                         ifelse(Time %in% time_may_nov &
+                                  runinfo %like% "S11 Supelco", 0.01380,
+                         ifelse(Time %in% time_may_nov &
+                                  runinfo %like% "S12 Supelco", 0.01500,
+                         ifelse(Time == "25.11.2020 02_15_0314" &
+                                  runinfo %like% "S13 Supelco", 0.0188,   
+                         ifelse(Time == "27.11.2020 04_31_1224" & 
+                                  runinfo %like% "S13 Supelco", 0.015,        
+                         ifelse(runinfo == "S6 A Supelco and 2 FAME", 0.005, 
+                         ifelse(Time %in% time_jan_feb_mar &
+                                  runinfo %like% "S1 Supelco", 0.0008,
+                         ifelse(Time %in% time_jan_feb_mar &
+                                  runinfo %like% "S2 Supelco", 0.0015,
+                         ifelse(Time %in% time_jan_feb_mar &
+                                  runinfo %like% "S3 Supelco", 0.0023,
+                         ifelse(Time %in% time_jan_feb_mar &
+                                  runinfo %like% "S4 Supelco", 0.0030,
+                         ifelse(Time %in% time_jan_feb_mar &
+                                  runinfo %like% "S5 Supelco", 0.0038,
+                         ifelse(Time %in% time_jan_feb_mar &
+                                  runinfo %like% "S6 Supelco", 0.0045,
+                         ifelse(Time %in% time_jan_feb_mar &
+                                  runinfo %like% "S7 Supelco", 0.0053,
+                         ifelse(Time %in% time_jan_feb_mar &
+                                  runinfo %like% "S8 Supelco", 0.0060,
+                         ifelse(Time %in% time_jan_feb_mar &
+                                  runinfo %like% "S9 Supelco", 0.0068,
+                         ifelse(Time %in% time_jan_feb_mar &
+                                  runinfo %like% "S10 Supelco", 0.0075, 
+                         ifelse(Time %in% time_jan_feb_mar &
+                                  runinfo %like% "S11 Supelco", 0.0083, 
+                         ifelse(Time %in% time_jan_feb_mar &
+                                  runinfo %like% "S12 Supelco", 0.009, 
+                                NA))))))))))))))))))))))))))))))))))))))))
+}                                            
+```
+
+Add V2 (end volume of dilution/standard) in mL
+```{r, message=FALSE, warning=FALSE}
+for (i in c(1:126))
+{
+standard_list[[i]]$V2 <- with(standard_list[[i]],
+                         ifelse(Time %like% "06.01.2020" &
+                                  runinfo %like% "S1 Supelco", 0.05005, 
+                         ifelse(Time %like% "06.01.2020" &
+                                  runinfo %like% "S2 Supelco", 0.05000,
+                         ifelse(Time %like% "06.01.2020" &
+                                  runinfo %like% "S3 Supelco", 0.05005,
+                         ifelse(Time %like% "06.01.2020" &
+                                  runinfo %like% "S4 Supelco", 0.05000,
+                         ifelse(Time %like% "06.01.2020" &
+                                  runinfo %like% "S5 Supelco", 0.05005,
+                         ifelse(Time %like% "06.01.2020" &
+                                  runinfo %like% "S6 Supelco", 0.05000,
+                         ifelse(Time %like% "06.01.2020" &
+                                  runinfo %like% "S7 Supelco", 0.05005,
+                         ifelse(Time %like% "06.01.2020" &
+                                  runinfo %like% "S8 Supelco", 0.05000,
+                         ifelse(Time %like% "06.01.2020" &
+                                  runinfo %like% "S9 Supelco", 0.05005,
+                         ifelse(Time %like% "06.01.2020" &
+                                  runinfo %like% "S10 Supelco", 0.05000,
+                         ifelse(Time %like% "06.01.2020" &
+                                  runinfo %like% "S11 Supelco", 0.05020,
+                         ifelse(Time %like% "06.01.2020" &
+                                  runinfo %like% "S12 Supelco", 0.05000,
+                         ifelse(Time %in% time_may_nov &
+                                  runinfo %like% "S1 Supelco", 0.20000, 
+                         ifelse(Time %in% time_may_nov &
+                                  runinfo %like% "S2 Supelco", 0.10000,
+                         ifelse(Time %in% time_may_nov &
+                                  runinfo %like% "S3 Supelco", 0.10000,
+                         ifelse(Time %in% time_may_nov &
+                                  runinfo %like% "S4 Supelco", 0.05000,
+                         ifelse(Time %in% time_may_nov &
+                                  runinfo %like% "S5 Supelco", 0.05040,
+                         ifelse(Time %in% time_may_nov &
+                                  runinfo %like% "S6 Supelco", 0.05000,
+                         ifelse(Time %in% time_may_nov &
+                                  runinfo %like% "S7 Supelco", 0.05020,
+                         ifelse(Time %in% time_may_nov &
+                                  runinfo %like% "S8 Supelco", 0.05000,
+                         ifelse(Time %in% time_may_nov &
+                                  runinfo %like% "S9 Supelco", 0.05020,
+                         ifelse(Time %in% time_may_nov &
+                                  runinfo %like% "S10 Supelco", 0.05000,
+                         ifelse(Time %in% time_may_nov &
+                                  runinfo %like% "S11 Supelco", 0.05020,
+                         ifelse(Time %in% time_may_nov &
+                                  runinfo %like% "S12 Supelco", 0.05000,
+                         ifelse(Time == "25.11.2020 02_15_0314" &
+                                  runinfo %like% "S13 Supelco", 0.0764,   
+                         ifelse(Time == "27.11.2020 04_31_1224" & 
+                                  runinfo %like% "S13 Supelco", 0.045,  
+                         ifelse(runinfo == "S6 A Supelco and 2 FAME", 0.032, 
+                         ifelse(Time %in% time_jan_feb_mar &
+                                  runinfo %like% "S1 Supelco", 0.03020,
+                         ifelse(Time %in% time_jan_feb_mar &
+                                  runinfo %like% "S2 Supelco", 0.03000,
+                         ifelse(Time %in% time_jan_feb_mar &
+                                  runinfo %like% "S3 Supelco", 0.03020,
+                         ifelse(Time %in% time_jan_feb_mar &
+                                  runinfo %like% "S4 Supelco", 0.03000,
+                         ifelse(Time %in% time_jan_feb_mar &
+                                  runinfo %like% "S5 Supelco", 0.03020,
+                         ifelse(Time %in% time_jan_feb_mar &
+                                  runinfo %like% "S6 Supelco", 0.03000,
+                         ifelse(Time %in% time_jan_feb_mar &
+                                  runinfo %like% "S7 Supelco", 0.03020,
+                         ifelse(Time %in% time_jan_feb_mar &
+                                  runinfo %like% "S8 Supelco", 0.03000,
+                         ifelse(Time %in% time_jan_feb_mar &
+                                  runinfo %like% "S9 Supelco", 0.03020,
+                         ifelse(Time %in% time_jan_feb_mar &
+                                  runinfo %like% "S10 Supelco", 0.03000, 
+                         ifelse(Time %in% time_jan_feb_mar &
+                                  runinfo %like% "S11 Supelco", 0.03020, 
+                         ifelse(Time %in% time_jan_feb_mar &
+                                  runinfo %like% "S12 Supelco", 0.03000,
+                                NA))))))))))))))))))))))))))))))))))))))))
+}    
+```
+
+Add c2 (concentration in diluted supelco/standard) microgramm per mL
+
+For 18:3n-3 c2 calculated in libre office and then added (otherwise too many ifelse), for other FAME calculated here in R:
+
+$$ c_2 = {c_1 \cdot V_1 \over V_2} $$
+
+```{r, message=FALSE, warning=FALSE}
+for (i in c(1:126))
+{
+standard_list[[i]]$c2 <- with(standard_list[[i]],
+                         ifelse(Time %like% "06.01.2020" &
+                                  runinfo %like% "S1 Supelco" & 
+                                  name_pufa == "18:3n-3", 1.06081, 
+                         ifelse(Time %like% "06.01.2020" &
+                                  runinfo %like% "S2 Supelco" &
+                                  name_pufa == "18:3n-3", 2.12375,
+                         ifelse(Time %like% "06.01.2020" &
+                                  runinfo %like% "S3 Supelco" &
+                                  name_pufa == "18:3n-3", 10.60814,
+                         ifelse(Time %like% "06.01.2020" &
+                                  runinfo %like% "S4 Supelco" &
+                                  name_pufa == "18:3n-3", 21.23750,
+                         ifelse(Time %like% "06.01.2020" &
+                                  runinfo %like% "S5 Supelco" &
+                                  name_pufa == "18:3n-3", 31.82443,
+                         ifelse(Time %like% "06.01.2020" &
+                                  runinfo %like% "S6 Supelco" &
+                                  name_pufa == "18:3n-3", 42.47500,
+                         ifelse(Time %like% "06.01.2020" &
+                                  runinfo %like% "S7 Supelco" &
+                                  name_pufa == "18:3n-3", 53.04071,
+                         ifelse(Time %like% "06.01.2020" &
+                                  runinfo %like% "S8 Supelco" &
+                                  name_pufa == "18:3n-3", 63.71250,
+                         ifelse(Time %like% "06.01.2020" &
+                                  runinfo %like% "S9 Supelco" &
+                                  name_pufa == "18:3n-3", 74.25699,
+                         ifelse(Time %like% "06.01.2020" &
+                                  runinfo %like% "S10 Supelco" &
+                                  name_pufa == "18:3n-3", 84.95000,
+                         ifelse(Time %like% "06.01.2020" &
+                                  runinfo %like% "S11 Supelco" &
+                                  name_pufa == "18:3n-3", 95.61106,
+                         ifelse(Time %like% "06.01.2020" &
+                                  runinfo %like% "S12 Supelco" &
+                                  name_pufa == "18:3n-3", 106.18750,
+                         ifelse(Time %in% time_may_nov &
+                                  runinfo %like% "S1 Supelco" &
+                                  name_pufa == "18:3n-3", 10.61875, 
+                         ifelse(Time %in% time_may_nov &
+                                  runinfo %like% "S2 Supelco" &
+                                  name_pufa == "18:3n-3", 21.23750,
+                         ifelse(Time %in% time_may_nov &
+                                  runinfo %like% "S3 Supelco" &
+                                  name_pufa == "18:3n-3", 31.85625,
+                         ifelse(Time %in% time_may_nov &
+                                  runinfo %like% "S4 Supelco" &
+                                  name_pufa == "18:3n-3", 42.47500,
+                         ifelse(Time %in% time_may_nov &
+                                  runinfo %like% "S5 Supelco" &
+                                  name_pufa == "18:3n-3", 53.09375,
+                         ifelse(Time %in% time_may_nov &
+                                  runinfo %like% "S6 Supelco" &
+                                  name_pufa == "18:3n-3", 63.71250,
+                         ifelse(Time %in% time_may_nov &
+                                  runinfo %like% "S7 Supelco" &
+                                  name_pufa == "18:3n-3", 74.45817,
+                         ifelse(Time %in% time_may_nov &
+                                  runinfo %like% "S8 Supelco" &
+                                  name_pufa == "18:3n-3", 84.95000,
+                         ifelse(Time %in% time_may_nov &
+                                  runinfo %like% "S9 Supelco" &
+                                  name_pufa == "18:3n-3", 95.61106,
+                         ifelse(Time %in% time_may_nov &
+                                  runinfo %like% "S10 Supelco" &
+                                  name_pufa == "18:3n-3", 106.18750,
+                         ifelse(Time %in% time_may_nov &
+                                  runinfo %like% "S11 Supelco" &
+                                  name_pufa == "18:3n-3", 116.76394,
+                         ifelse(Time %in% time_may_nov &
+                                  runinfo %like% "S12 Supelco" &
+                                  name_pufa == "18:3n-3", 127.42500,
+                         ifelse(Time == "25.11.2020 02_15_0314" &
+                                  runinfo %like% "S13 Supelco", 104.51963,   
+                         ifelse(Time == "27.11.2020 04_31_1224" & 
+                                  runinfo %like% "S13 Supelco", 141.58333,
+                         ifelse(runinfo == "S6 A Supelco and 2 FAME" &
+                                  name_pufa == "18:3n-3", 45.18617, 
+                         ifelse(Time %in% time_jan_feb_mar &
+                                  runinfo %like% "S1 Supelco" &
+                                  name_pufa == "18:3n-3", 11.25166,
+                         ifelse(Time %in% time_jan_feb_mar &
+                                  runinfo %like% "S2 Supelco" &
+                                  name_pufa == "18:3n-3", 21.23750,
+                         ifelse(Time %in% time_jan_feb_mar &
+                                  runinfo %like% "S3 Supelco" &
+                                  name_pufa == "18:3n-3", 32.34851,
+                         ifelse(Time %in% time_jan_feb_mar &
+                                  runinfo %like% "S4 Supelco" &
+                                  name_pufa == "18:3n-3", 42.47500,
+                         ifelse(Time %in% time_jan_feb_mar &
+                                  runinfo %like% "S5 Supelco" &
+                                  name_pufa == "18:3n-3", 53.44536,
+                         ifelse(Time %in% time_jan_feb_mar &
+                                  runinfo %like% "S6 Supelco" &
+                                  name_pufa == "18:3n-3", 63.71250,
+                         ifelse(Time %in% time_jan_feb_mar &
+                                  runinfo %like% "S7 Supelco" &
+                                  name_pufa == "18:3n-3", 74.54222,
+                         ifelse(Time %in% time_jan_feb_mar &
+                                  runinfo %like% "S8 Supelco" &
+                                  name_pufa == "18:3n-3", 84.95000,
+                         ifelse(Time %in% time_jan_feb_mar &
+                                  runinfo %like% "S9 Supelco" &
+                                  name_pufa == "18:3n-3", 95.63907,
+                         ifelse(Time %in% time_jan_feb_mar &
+                                  runinfo %like% "S10 Supelco" &
+                                  name_pufa == "18:3n-3", 106.18750, 
+                         ifelse(Time %in% time_jan_feb_mar &
+                                  runinfo %like% "S11 Supelco" &
+                                  name_pufa == "18:3n-3", 116.73593, 
+                         ifelse(Time %in% time_jan_feb_mar &
+                                  runinfo %like% "S12 Supelco" &
+                                  name_pufa == "18:3n-3", 127.42500,
+                         (c1*V1)/V2))))))))))))))))))))))))))))))))))))))))
+}  
+```
+
+For calibration curve 06.01.2020 12_17_082 we need to put concentration of S6 as c1 and calculate c2 with right value (c1 was taken from S6 and not undiluted standards)
+```{r, message=FALSE, warning=FALSE}
+standard_list[["06.01.2020 12_17_082"]]$c1 <- standard_list[["06.01.2020 17_52_418"]]$c2
+
+standard_list[["06.01.2020 12_17_082"]]$c2 <- with(standard_list[["06.01.2020 12_17_082"]], (c1*V1)/V2)
+```
+
+## Calculate calibration curves (linear)
+
+$$ area = a \cdot {concentration } + b $$
+
+* Get slope (a), intercept (b) and R^2
+
+Get data frame from list
+```{r, message=FALSE, warning=FALSE}
+standards <- do.call(rbind, standard_list) 
+```
+
+Get standards for Jan - Mar 2020, May - Jun 2020, Nov 2020
+```{r, message=FALSE, warning=FALSE}
+standards$cali <-with(standards, ifelse(Date > "2020-01-01" & Date <= "2020-04-01","cali_1",ifelse(Date > "2020-05-01" & Date <= "2020-07-01","cali_2","cali_3")))
+```
+
+Get info needed to get lists with single calibration curves
+Need info of date and name_pufa
+```{r, message=FALSE, warning=FALSE}
+standards <- unite(standards, "cali_pufa", "cali", "name_pufa", sep = "_", remove = FALSE)
+
+count_cali <- count(standards, c("cali_pufa"))
+names(count_cali)[2] <- c("no_measurements_cali")
+seq <- c(count_cali$no_measurements_cali)
+calibration <- left_join(standards, count_cali, by = "cali_pufa")
+
+#unique(calibration$Date)
+#unique(calibration$cali_pufa)
+```
+
+Get list
+```{r, message=FALSE, warning=FALSE}
+calibration_list <- split(calibration, f = c(calibration$cali_pufa), seq(along.with = seq))
+```
+
+Get slope
+```{r, message=FALSE, warning=FALSE}
+for (i in c(1:94)) 
+ {
+calibration_list[[i]]$slope <- with(calibration_list[[i]], ifelse(nrow(calibration_list[[i]]) > 1, lm(area ~ c2, data = calibration_list[[i]])[[1]][[2]], NA))
+}
+```
+
+Get intercept
+```{r, message=FALSE, warning=FALSE}
+for (i in c(1:94)) 
+ {
+calibration_list[[i]]$intercept <- with(calibration_list[[i]], ifelse(nrow(calibration_list[[i]]) > 1, lm(area ~ c2, data = calibration_list[[i]])[[1]][[1]], NA))
+}
+```
+
+Get adjusted r squared
+```{r, message=FALSE, warning=FALSE}
+for (i in c(1:94)) 
+ {
+calibration_list[[i]]$adj.r.squared <- with(calibration_list[[i]], ifelse(nrow(calibration_list[[i]]) > 1, summary(lm(area ~ c2, data = calibration_list[[i]]))$adj.r.squared, NA))
+}
+```
+
+### Check calibrations
+
+Check $R^2$ < 0.7 for PUFA with 17 or more C-Atoms (other PUFA not used in analysis)
+
+Get PUFAs
+```{r, message=FALSE, warning=FALSE}
+calibration <- do.call(rbind, calibration_list)
+name_17 <- c("24:1n-9", "24:0", "22:6n-3", "23:0", "22:2n-6", "22:1n-9", "22:0", "20:5n-3", "20:3n-3", "21:0", "20:4n-6", "20:3n-6", "20:2n-6", "20:1n-9", "20:0", "18:3n-3", "18:3n-6", "18:2n-6c", "18:2n-6t", "18:1n-7", "18:1n-9c", "18:1n-9t", "18:0", "17:1n-7", "17:0")
+
+check_r2 <- filter(calibration, name_pufa %in% name_17)
+check_r2 <- select(check_r2, c("cali_pufa", "name_pufa", "adj.r.squared"))
+```
+
+Get R^2 for calibrations
+```{r, message=FALSE, warning=FALSE}
+check_r2 <- distinct(check_r2)
+check_r2$adj.r.squared <- round(check_r2$adj.r.squared, digits = 1)
+
+check_r2_0.7 <- filter(check_r2, adj.r.squared < 0.7)
+
+name_check_r2_0.7 <- unique(check_r2_0.7$cali_pufa)
+```
+
+Visual check for calibrations with R^2 < 0.7
+Get data
+```{r, message=FALSE, warning=FALSE}
+check_cali_r2_0.7 <- filter(calibration, cali_pufa %in% name_check_r2_0.7)
+
+name_check_cali_1_r2_0.7 <- c("cali_1_17:0", "cali_1_17:1n-7", "cali_1_18:1n-9c", "cali_1_18:2n-6t", "cali_1_20:1n-9", "cali_1_20:3n-3", "cali_1_24:0") 
+
+name_check_cali_3_r2_0.7 <- c("cali_3_17:0", "cali_3_17:1n-7", "cali_3_18:1n-7", "cali_3_18:1n-9c", "cali_3_18:1n-9t", "cali_3_18:2n-6c", "cali_3_18:2n-6t", "cali_3_18:3n-3", "cali_3_18:3n-6",  "cali_3_20:0", "cali_3_20:1n-9", "cali_3_20:2n-6", "cali_3_20:3n-3", "cali_3_20:3n-6", "cali_3_20:4n-6", "cali_3_20:5n-3", "cali_3_21:0", "cali_3_22:0", "cali_3_22:1n-9", "cali_3_22:2n-6", "cali_3_22:6n-3", "cali_3_23:0", "cali_3_24:0", "cali_3_24:1n-9" )
+```
+
+Plot Calibration 1
+```{r, message=FALSE, warning=FALSE}
+for (i in name_check_cali_1_r2_0.7)
+ {
+plot(calibration_list[[i]]$area ~ calibration_list[[i]]$c2, yaxt="n", ylab="", pch = 16, xlab ="", main = i)
+axis(2, las=2)
+title(ylab= expression(Integrated~area), xlab = expression(concentration~microgramm~mL))
+abline(lm(calibration_list[[i]]$area ~ calibration_list[[i]]$c2), lwd = 2)
+text(60, 100, calibration_list[[i]]$adj.r.squared[1])
+}
+```
+
+For cali 1 and 2: Force calibration through 0 to improve R^2
+
+Plot calibration 3
+```{r, message=FALSE, warning=FALSE}
+for (i in name_check_cali_3_r2_0.7)
+ {
+plot(calibration_list[[i]]$area ~ calibration_list[[i]]$c2, yaxt="n", ylab="", pch = 16, xlab ="", main = i)
+axis(2, las=2)
+title(ylab= expression(Integrated~area), xlab = expression(concentration~microgramm~mL))
+abline(lm(calibration_list[[i]]$area ~ calibration_list[[i]]$c2), lwd = 2)
+text(120, 150000, calibration_list[[i]]$adj.r.squared[1])
+}
+```
+
+Force calibration through 0, remove two highest concentrations and outlier around 40 microgramm/mL
+
+## Calculate calibration curves to improve R^2
+
+$$ area = a \cdot {concentration } + 0 $$
+
+* Get slope (a) and R^2
+
+Get data frame from list
+```{r, message=FALSE, warning=FALSE}
+standards_2 <- do.call(rbind, standard_list) 
+```
+
+Get standards for Jan - Mar 2020, May - Jun 2020, Nov 2020
+```{r, message=FALSE, warning=FALSE}
+standards_2$cali <-with(standards_2, ifelse(Date > "2020-01-01" & Date <= "2020-04-01","cali_1",ifelse(Date > "2020-05-01" & Date <= "2020-07-01","cali_2","cali_3")))
+```
+
+Get info needed to get lists with single calibration curves
+Need info of date and name_pufa
+```{r, message=FALSE, warning=FALSE}
+standards_2 <- unite(standards_2, "cali_pufa", "cali", "name_pufa", sep = "_", remove = FALSE)
+
+count_cali <- count(standards_2, c("cali_pufa"))
+names(count_cali)[2] <- c("no_measurements_cali")
+seq <- c(count_cali$no_measurements_cali)
+calibration_2 <- left_join(standards_2, count_cali, by = "cali_pufa")
+
+#unique(calibration_2$Date)
+#unique(calibration_2$cali_pufa)
+```
+
+Get list
+```{r, message=FALSE, warning=FALSE}
+calibration_list_2 <- split(calibration_2, f = c(calibration_2$cali_pufa), seq(along.with = seq))
+```
+
+Remove two highest concentrations of cali_3
+```{r, message=FALSE, warning=FALSE}
+remove <- filter(calibration_2, cali == "cali_3")
+remove <- unique(remove$cali_pufa)
+
+for (i in remove) 
+ {
+calibration_list_2[[i]] <- filter(calibration_list_2[[i]], c2 < max(c2))
+}
+
+for (i in remove) 
+ {
+calibration_list_2[[i]] <- filter(calibration_list_2[[i]], c2 < max(c2))
+}
+```
+
+Remove single measurement with high concentration around 40 microgram/mL
+```{r, message=FALSE, warning=FALSE}
+for (i in c(1:94)) 
+ {
+calibration_list_2[[i]] <- filter(calibration_list_2[[i]], 
+                                  runname != "AcqMethodName24.11.2020 12_09_562")
+}
+```
+
+Get slope and force intercept through 0
+```{r, message=FALSE, warning=FALSE}
+for (i in c(1:94)) 
+ {
+calibration_list_2[[i]]$slope <- with(calibration_list_2[[i]], ifelse(nrow(calibration_list_2[[i]]) > 1, lm(area ~ 0 + c2, data = calibration_list_2[[i]])[[1]][[1]], NA))
+}
+```
+
+Get adjusted r squared
+```{r, message=FALSE, warning=FALSE}
+for (i in c(1:94)) 
+ {
+calibration_list_2[[i]]$adj.r.squared <- with(calibration_list_2[[i]], ifelse(nrow(calibration_list_2[[i]]) > 1, summary(lm(area ~ c2, data = calibration_list_2[[i]]))$adj.r.squared, NA))
+}
+```
+
+### Check calibrations
+
+Check R^2 for PUFA with 17 or more C-Atoms
+Get PUFAs
+```{r, message=FALSE, warning=FALSE}
+calibration_2 <- do.call(rbind, calibration_list_2)
+
+check_r2_2 <- filter(calibration_2, name_pufa %in% name_17)
+check_r2_2 <- select(check_r2_2, c("cali_pufa", "name_pufa", "adj.r.squared"))
+```
+
+Get R^2 for calibrations
+```{r, message=FALSE, warning=FALSE}
+check_r2_2 <- distinct(check_r2_2)
+check_r2_2$adj.r.squared <- round(check_r2_2$adj.r.squared, digits = 1)
+names(check_r2_2)[3] <- "adj.r.squared_2"
+```
+
+Compare R^2
+Merge $R^2$ data
+```{r, message=FALSE, warning=FALSE}
+check_r2_2 <- left_join(check_r2, check_r2_2, by =c("cali_pufa", "name_pufa"))
+```
+
+Check if $R^2$ is higher after improvement measures
+```{r, message=FALSE, warning=FALSE}
+filter(check_r2_2, adj.r.squared > adj.r.squared_2)
+
+filter(check_r2_2, adj.r.squared < adj.r.squared_2) 
+```
+Improved for 23 calibrations
+
+Visual check for calibrations 
+
+-> plot calibration original and changed in same plot with different colours to compare
+-> blue original calibration
+-> black calibration forced through 0 and without outliers
+
+Plot
+```{r, message=FALSE, warning=FALSE}
+names <- unique(calibration$cali_pufa)
+
+for (i in names)
+ {
+plot(calibration_list[[i]]$area ~ calibration_list[[i]]$c2, yaxt="n", ylab="", xlab ="", main = i, pch = 0, col = "blue")
+axis(2, las=2)
+points(x = calibration_list_2[[i]]$c2, y = calibration_list_2[[i]]$area, pch = 16)
+title(ylab= expression(Integrated~area), xlab = expression(concentration~microgramm~mL))
+abline(lm(calibration_list_2[[i]]$area ~ 0 + calibration_list_2[[i]]$c2), lwd = 2)
+abline(lm(calibration_list[[i]]$area ~ calibration_list[[i]]$c2), lwd = 2, col = "blue")
+}
+```
+
+Get data frame
+```{r, message=FALSE, warning=FALSE}
+calibration <- do.call(rbind, calibration_list_2)
+```
+
+# LOQ
+## Prepare data
+
+Get data of blinds
+```{r, message=FALSE, warning=FALSE}
+blind <- read.table("blind.csv", header = TRUE, sep = ",",na.strings = c("NR", "NA"), stringsAsFactors = FALSE, strip.white = TRUE) 
+```
+
+Remove not identified peaks in blinds and blinds to which internal standard was added accidentally 
+```{r, message=FALSE, warning=FALSE}
+blind <- filter(blind, name_pufa !="")
+blind <- filter(blind, Internal_Standard_Volume_ID == 0)
+```
+
+Round c2 on one digit
+```{r, message=FALSE, warning=FALSE}
+standards$c2 <- round(standards$c2, digits = 0)
+```
+
+Get LOQ for Jan-Mar, May-Jun, Nov
+```{r, message=FALSE, warning=FALSE}
+blind$cali <-with(blind, ifelse(Date > "2020-01-01" & Date <= "2020-04-01","cali_1",ifelse(Date > "2020-05-01" & Date <= "2020-07-01","cali_2","cali_3")))
+
+blind <- unite(blind, "cali_pufa", "cali", "name_pufa", sep = "_", remove = FALSE)
+```
+
+Get mean area per PUFA and calibration in blinds and standards
+```{r, message=FALSE, warning=FALSE}
+blind_mean <- ddply(blind, c("cali_pufa"), summarise, mean_area_blind = mean(area))
+
+standards_mean <- ddply(standards, c("cali_pufa", "c2"), summarise, mean_area_standard = mean(area))
+```
+
+Merge data
+```{r, message=FALSE, warning=FALSE}
+LOQ <- merge(standards_mean, blind_mean, by ="cali_pufa")
+```
+
+
+## Calculate LOQ
+
+Check if factor > 3 is between mean blind area and standard
+
+First divide mean area of standards with mean area of blind
+
+$$ LOQ = { \frac {mean\ \ area\ \ standard} {mean\ \ area\ \ blind}} $$
+
+```{r, message=FALSE, warning=FALSE}
+LOQ$f <- with(LOQ, round(mean_area_standard/mean_area_blind, digits = 0))
+```
+
+Filter to get all factors > 3
+```{r, message=FALSE, warning=FALSE}
+LOQ <- filter(LOQ, f > 3)
+```
+
+Chose per PUFA smallest c2
+```{r, message=FALSE, warning=FALSE}
+LOQ <- ddply(LOQ, c("cali_pufa"), summarise, min_c2 = min(c2))
+```
+
+Some PUFA not found in blinds so, min_c2 = 1/2 concentration of lowest standard.
+```{r, message=FALSE, warning=FALSE}
+half_conc <- ddply(standards_mean, c("cali_pufa"), summarise, min_c2 = min(c2))
+
+half_conc$min_c2 <- half_conc$min_c2/2
+
+not_zero <- unique(LOQ$cali_pufa)
+
+`%notin%` <- Negate(`%in%`)
+
+half_conc <- filter(half_conc, cali_pufa %notin% not_zero)
+
+LOQ <- rbind(LOQ, half_conc)
+```
+
+# Internal standards
+## Prepare data
+
+Get data of internal standards
+```{r, message=FALSE, warning=FALSE}
+si <- read.table("internal_standard.csv", header = TRUE, sep = ",",na.strings = c("NR", "NA"), stringsAsFactors = FALSE, strip.white = TRUE) 
+```
+
+mg in microgram
+```{r, message=FALSE, warning=FALSE}
+si$weighed_in_microg <- with(si, weighed_in_mg*1000)
+```
+
+Standard_ID in same format as in checklists
+```{r, message=FALSE, warning=FALSE}
+si$Standard_ID <- gsub("_", "", si$Standard_ID)
+```
+
+Add volume of internal standard added to samples
+* for all standards: 50 - 400 microL -> 0.05 mL - 0.4 mL
+* Name in columns will be microL, because this is needed to add it to samples
+* Value in columns will be mL, because mL used for all calculations
+```{r, message=FALSE, warning=FALSE}
+si$'50' <- 0.050
+
+si$'100' <- 0.100
+si$'150' <- 0.150
+
+si$'200' <- 0.200
+si$'250' <- 0.250
+
+si$'300' <- 0.300
+si$'350' <- 0.350
+
+si$'400' <- 0.400
+
+si <- reshape2::melt(si, id.vars = c("Lipid", "Standard_ID", "date", "weighed_in_mg" , "Volume_MeOH_mL", "comment", "weighed_in_microg"), variable.name = "volume_added_microL", value.name = "volume_added_mL")
+```
+
+Add column Internal_Standard_Volume_ID, which is needed to merge later with samples
+50_SI6
+```{r, message=FALSE, warning=FALSE}
+si <- unite(si, Internal_Standard_Volume_ID, volume_added_microL, 
+            Standard_ID, sep = "_")
+```
+
+Rename lipid into name_pufa and put in same format as in samples
+```{r, message=FALSE, warning=FALSE}
+names(si)[1] <- "name_pufa"
+si$name_pufa <- gsub("C", "", si$name_pufa)
+```
+
+## Calculate c1 of internal standards 
+
+* $c_1$: concentration in microgram per mL after internal standards were dissolved in MeOH
+* m: mass of internal standard weighed in 
+* $V_1$: Volume of MeOH used to dissolve internal standards
+
+$$ c_1 = {\frac {m} {V_1}}$$
+```{r, message=FALSE, warning=FALSE}
+si$c1 <- with(si, weighed_in_microg/Volume_MeOH_mL)
+```
+
+## Calculate mass of internal standards added to samples
+
+* $V_2$: Volume internal standard added to sample
+* m: mass of internal standards added to samples
+* $c_1$:concentration in microgram per mL after internal standards were dissolved in MeOH
+
+$$ m = c_1 \cdot V_2 $$
+
+```{r, message=FALSE, warning=FALSE}
+si$m_si_in_sample <- with(si, c1*volume_added_mL)
+```
+
+Chose columns needed to calculate recovery
+```{r, message=FALSE, warning=FALSE}
+recovery <- select(si, "name_pufa", "Internal_Standard_Volume_ID", "m_si_in_sample"  )
+```
+
+# Recovery
+
+Get potential abbreviations from original concentration of PUFA in samples e.g. losses during extraction and derivatization.
+
+## Prepare data
+
+Get data of samples
+```{r, message=FALSE, warning=FALSE}
+microcosm <- read.table("microcosm.csv", header = TRUE, sep = ",",na.strings = c("NR", "NA"), stringsAsFactors = FALSE, strip.white = TRUE) 
+microcosm_complete <- read.table("microcosm.csv", header = TRUE, sep = ",",na.strings = c("NR", "NA"), stringsAsFactors = FALSE, strip.white = TRUE) 
+
+emergence <- read.table("emergence.csv", header = TRUE, sep = ",",na.strings = c("NR", "NA"), stringsAsFactors = FALSE, strip.white = TRUE) 
+
+spiders <- read.table("spiders_field.csv", header = TRUE, sep = ",",na.strings = c("NR", "NA"), stringsAsFactors = FALSE, strip.white = TRUE) 
+```
+
+Rename columns containing dry weight
+```{r, message=FALSE, warning=FALSE}
+names(spiders)[7] <- "dry_weight_mg"
+
+names(emergence)[4] <- "dry_weight_mg" 
+```
+
+Get needed columns and bind experimental data
+```{r, message=FALSE, warning=FALSE}
+microcosm <- select(microcosm, c("experiment", "GC_ID", "Internal_Standard_Volume_ID", "MeOH_Volume_dissolved", "TMSH_Volume", "Sample_Volume_derivatized", "runinfo", "area", "name_pufa", "runname", "Date", "dry_weight_mg"))                       
+
+spiders <- select(spiders, c("experiment", "GC_ID", "Internal_Standard_Volume_ID", "MeOH_Volume_dissolved", "TMSH_Volume", "Sample_Volume_derivatized", "runinfo", "area", "name_pufa", "runname", "Date", "dry_weight_mg"))  
+
+emergence <- select(emergence, c("experiment", "GC_ID", "Internal_Standard_Volume_ID", "MeOH_Volume_dissolved", "TMSH_Volume", "Sample_Volume_derivatized", "runinfo", "area", "name_pufa", "runname", "Date", "dry_weight_mg"))  
+
+rec_data <- rbind(microcosm, spiders, emergence)
+```
+
+Get C23 and C17 data
+```{r, message=FALSE, warning=FALSE}
+rec_data <- filter(rec_data, name_pufa %in% c("17:0", "23:0"))
+```
+
+Get column "cali_name" needed to merge with calibration data 
+```{r, message=FALSE, warning=FALSE}
+rec_data$cali <-with(rec_data, ifelse(Date > "2020-01-01" & Date <= "2020-04-01","cali_1",ifelse(Date > "2020-05-01" & Date <= "2020-07-01","cali_2","cali_3")))
+```
+
+Column with info needed to merge correctly
+```{r, message=FALSE, warning=FALSE}
+rec_data <- unite(rec_data, "cali_pufa", "cali", "name_pufa", sep = "_", remove = FALSE)
+```
+
+Columns needed from standards to calculate conc. in samples
+```{r, message=FALSE, warning=FALSE}
+cali <- select(calibration, c("cali_pufa", "slope")) 
+```
+
+For every standard measurement in same calibration curve and substance slope, which are the same
+```{r, message=FALSE, warning=FALSE}
+cali <- distinct(cali) 
+```
+
+Merge with calibration 
+```{r, message=FALSE, warning=FALSE}
+rec_data <- left_join(rec_data, cali, by = "cali_pufa")
+```
+
+Merge with LOQ table
+```{r, message=FALSE, warning=FALSE}
+rec_data <- left_join(rec_data, LOQ, by = "cali_pufa")
+```
+
+## Calculate 17:0 and 23:0 concentration in samples
+
+PUFA dissolved: Measured concentration in microgramm per mL
+
+$$ area = slope \cdot concentration $$
+$$ concentration = {\frac  {area } {slope}} $$
+
+```{r, message=FALSE, warning=FALSE}
+rec_data$conc_measured <- with(rec_data, (area)/slope)
+```
+
+Include LOQ
+Set 0 for concentration < LOQ 
+```{r, message=FALSE, warning=FALSE}
+rec_data$conc_measured_LOQ <- with(rec_data, ifelse(conc_measured < min_c2, 0, conc_measured))
+```
+
+Merge microcosm and recovery data
+```{r, message=FALSE, warning=FALSE}
+recovery <- left_join(rec_data, recovery, by = c("name_pufa", "Internal_Standard_Volume_ID"))
+```
+
+Concentration internal standard in sample dissolved in MeOH after evaporation of Chloroform:MeOH
+
+* $V_2$: Volume MeOH, in which solved (MeOH_Volume_dissolved -> is in microlitre, so divide by 1000 to get mL)
+* $c_2$: Concentration internal standard after sample dissolved -> c_si_dissolved -> microgram per mL
+
+$$ c_2 = {\frac{m} {V_2}} $$
+```{r, message=FALSE, warning=FALSE}
+recovery$c_si_dissolved <- with(recovery, m_si_in_sample/(MeOH_Volume_dissolved/1000))
+```
+
+Get measured concentration of internal standard
+* $V_3$: Volume taken from sample to be derivatizized (Sample_Volume_derivatized) -> divide by 1000 to get mL
+* $V_4$: Volume TMSH used for derivatization(TMSH_Volume) -> divide by 1000 to get mL
+* $V_5$: Volume TMSH + Volume sample ($V_3$ + $V_4$)
+* $c_3$: Concentration internal standard measured -> c_si_measured
+* $c_2$: Concentration internal standard after sample dissolved -> c_si_dissolved -> microgram per mL
+
+$$ c_3 = {\frac{c_2 \cdot V_3} {V_5}} $$
+$$ c_3 = {\frac{c_2 \cdot V_3} {V_3 + V_4}} $$
+```{r, message=FALSE, warning=FALSE}
+recovery$c_si_measured <- with(recovery,
+                               ((c_si_dissolved*(Sample_Volume_derivatized/1000))/
+                              ((TMSH_Volume/1000)+(Sample_Volume_derivatized/1000))))
+```
+
+Calculate recovery
+
+$$ recovery = {\frac{concentration_{measured}} {concentration_{internal \ standard} }} $$
+
+```{r, message=FALSE, warning=FALSE}
+recovery$rec <- with(recovery, conc_measured_LOQ/c_si_measured)
+```
+
+Get recovery of 23:0, since 17:0 mostly below LOQ or not detected at all
+```{r, message=FALSE, warning=FALSE}
+recovery <- filter(recovery, name_pufa == "23:0")
+```
+
+Calculate mean recovery for Jan-Mar, May-Jun and Nov
+```{r, message=FALSE, warning=FALSE}
+recovery <- ddply(recovery, c("cali", "cali_pufa"), summarise, mean_rec = mean(rec, na.rm = TRUE))
+```
+
+# Concentration in microcosm samples 
+## Prepare data
+
+Merge microcosm and calibration data
+```{r, message=FALSE, warning=FALSE}
+microcosm$cali <-with(microcosm, ifelse(Date > "2020-01-01" & Date <= "2020-04-01","cali_1",ifelse(Date > "2020-05-01" & Date <= "2020-07-01","cali_2","cali_3")))
+
+unique(microcosm$cali)
+
+filter(microcosm, is.na(microcosm$cali)) #NA: "chiro fishfood 2 31.05.2019" lost during pipetting, test chiro A and B -> so real NA 
+
+microcosm <- filter(microcosm, !is.na(cali)) # remove NA
+```
+
+column with info needed to merge correctly
+```{r, message=FALSE, warning=FALSE}
+microcosm <- unite(microcosm, "cali_pufa", "cali", "name_pufa", sep = "_", remove = FALSE)
+```
+colums needed from standards to calculate conc. in samples
+```{r, message=FALSE, warning=FALSE}
+cali <- select(calibration, c("cali_pufa", "slope")) 
+```
+
+for every standard measurement in same calibration curve and substance slope, which are the same
+```{r, message=FALSE, warning=FALSE}
+cali <- distinct(cali) 
+```
+
+Merge calibration and microcosm
+```{r, message=FALSE, warning=FALSE}
+microcosm <- left_join(microcosm, cali, by = "cali_pufa")
+```
+
+Merge with LOQ table
+```{r, message=FALSE, warning=FALSE}
+microcosm <- left_join(microcosm, LOQ, by = "cali_pufa")
+
+filter(microcosm, is.na(min_c2)) # NAs okay, because this PUFA not identified in Nov., identification started at C16
+
+microcosm <- filter(microcosm, !is.na(min_c2)) # remove NAs
+```
+
+# Calculate concentration in samples
+## PUFA dissolved
+Measured concentration in microgramm per mL
+
+$$ area = slope \cdot concentration $$
+$$ concentration = {\frac  {area } {slope}} $$
+
+```{r, message=FALSE, warning=FALSE}
+microcosm$conc_measured <- with(microcosm, (area)/slope)
+```
+
+## Include LOQ
+
+Set 0 for concentration < LOQ 
+```{r, message=FALSE, warning=FALSE}
+microcosm$conc_measured_LOQ <- with(microcosm, ifelse(conc_measured < min_c2, 0, conc_measured))
+```
+## Include recovery
+Chose columns needed 
+```{r, message=FALSE, warning=FALSE}
+mean_rec <- select(recovery, -c("cali_pufa"))
+```
+
+Merge microcosm and recovery data
+```{r, message=FALSE, warning=FALSE}
+microcosm <- left_join(microcosm, mean_rec, by = c("cali"))
+```
+
+Include recovery in concentration
+```{r, message=FALSE, warning=FALSE}
+microcosm$conc_measured_LOQ_rec <- with(microcosm, conc_measured_LOQ/mean_rec)
+```
+
+## Concentration in sample
+Get concentration dissolved in MeOH after evaporation
+* $V_2$: Volume MeOH used to dissolve sample (MeOH_Volume_dissolved) -> divide by 1000 to get mL
+* $V_3$: Volume taken from sample to be derivatizized (Sample_Volume_derivatized) -> divide by 1000 to get mL
+* $V_4$: Volume TMSH used for derivatization(TMSH_Volume) -> divide by 1000 to get mL
+* $V_5$: Volume TMSH + Volume sample
+* $c_3$: Concentration measured (including corrections with LOQ and recovery) -> conc_measured_LOQ_rec
+* $c_2$: Concentration after sample dissolved -> c_dissolved -> microgram per mL
+
+-> Calculate c2:
+
+$$ c_2 = {\frac{c_3 \cdot V_5} {V_2}} $$
+$$ c_2 = {\frac{c_3 \cdot (V_3 + V_4)} {V_2}} $$
+```{r, message=FALSE, warning=FALSE}
+microcosm$c_dissolved <-with(microcosm,
+                            (conc_measured_LOQ_rec*((TMSH_Volume/1000)+
+                              (Sample_Volume_derivatized/1000)))/
+                                MeOH_Volume_dissolved)
+```
+Mass PUFA in dissolved sample
+* $V_2$: Volume MeOH used to dissolve sample (MeOH_Volume_dissolved) -> divide by 1000 to get mL
+* $c_2$: Concentration after sample dissolved -> c_dissolved -> microgram per mL
+* m: mass PUFA dissolved in MeOH
+
+$$ m = c_2 \cdot V_2 $$
+```{r, message=FALSE, warning=FALSE}
+microcosm$mass_pufa <- with(microcosm, c_dissolved*(MeOH_Volume_dissolved/1000))
+
+range(microcosm$mass_pufa) #-> 0.00000 15.79341 microgramm
+
+range(microcosm$dry_weight_mg) # 0.4239 40.8680 mg
+```
+Weight PUFA per dry weight of organism (microgramm PUFA per milligram dry mass)
+
+$$ m_{dry.pufa} = {\frac{mass_{pufa}} {dry_{weight}}} $$
+
+```{r, message=FALSE, warning=FALSE}
+microcosm$dry_pufa <- with(microcosm, mass_pufa/dry_weight_mg)
+```
+
+
+
+# microcosm data for statistics
+
+Merge microcosm complete and microcosm
+```{r, message=FALSE, warning=FALSE}
+microcosm <- left_join(microcosm, microcosm_complete, by = c( "experiment", "GC_ID", "dry_weight_mg", "Internal_Standard_Volume_ID", "MeOH_Volume_dissolved", "TMSH_Volume", "Sample_Volume_derivatized", "runinfo", "area", "name_pufa", "runname","Date"))
+```
+Chose needed columns
+```{r, message=FALSE, warning=FALSE}
+microcosm <- select(microcosm, c("Organism", "treatment", "experiment", "experiment_ID", "name_pufa", "runinfo", "runinfo_original","runname", "dry_pufa", "dry_weight_mg"))
+```
+Chose PUFA for statistics
+```{r, message=FALSE, warning=FALSE}
+name_stats <- c("24:1n-9", "24:0", "22:6n-3", "22:2n-6", "22:1n-9", "22:0", "20:5n-3", "20:3n-3", "20:4n-6", "20:3n-6", "20:2n-6", "20:1n-9", "20:0", "18:3n-3", "18:3n-6", "18:2n-6c", "18:2n-6t", "18:1n-7", "18:1n-9c", "18:1n-9t", "18:0")
+
+microcosm <- filter(microcosm, name_pufa %in% name_stats)
+```
+# Save data
+```{r, message=FALSE, warning=FALSE}
+#write.csv(microcosm, file = "microcosm_pufa.csv", row.names = FALSE)
+```

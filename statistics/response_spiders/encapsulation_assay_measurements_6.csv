@@ -1,0 +1,302 @@
+Organism,treatment,experiment,spider_ID_experiment_ID,experiment_ID,spider_ID,picture,encapsulated_area_mm_2,length_mm,width_mm,comment,done by 
+spider,oatmeal,M2,228_oatmeal_18,oatmeal_18,228,A,0.188,1.228,0.144,,MS
+spider,oatmeal,M2,228_oatmeal_18,oatmeal_18,228,B,0.181,1.184,0.136,,MS
+spider,oatmeal,M2,228_oatmeal_18,oatmeal_18,228,C,0.209,1.185,0.145,,MS
+spider,leaves,M2,227_leaves_14,leaves_14,227,A,0.194,1.369,0.132,,MS
+spider,leaves,M2,227_leaves_14,leaves_14,227,B,0.181,1.295,0.132,,MS
+spider,leaves,M2,227_leaves_14,leaves_14,227,C,0.179,1.291,0.127,,MS
+spider,start,M2,,225,225,A,0.181,1.330,0.129,,MS
+spider,start,M2,,225,225,B,0.198,1.314,0.134,,MS
+spider,start,M2,,225,225,C,0.216,1.422,0.132,,MS
+spider,oatmeal,M2,223_oatmeal_16,oatmeal_16,223,A,0.189,1.421,0.132,,MS
+spider,oatmeal,M2,223_oatmeal_16,oatmeal_16,223,B,0.198,1.420,0.135,,MS
+spider,oatmeal,M2,223_oatmeal_16,oatmeal_16,223,C,0.191,1.410,0.135,,MS
+spider,oatmeal,M2,221_oatmeal_1,oatmeal_1,221,A,0.124,0.926,0.127,,MS
+spider,oatmeal,M2,221_oatmeal_1,oatmeal_1,221,B,0.132,0.957,0.131,,MS
+spider,oatmeal,M2,221_oatmeal_1,oatmeal_1,221,C,0.13,0.927,0.133,,MS
+spider,leaves,M2,220_leaves_13,leaves_13,220,A,0.145,1.063,0.131,,MS
+spider,leaves,M2,220_leaves_13,leaves_13,220,B,0.158,1.149,0.135,,MS
+spider,leaves,M2,220_leaves_13,leaves_13,220,C,0.166,1.153,0.139,,MS
+spider,fishfood,M2,219_fishfood_3,fishfood_3,219,A,0.139,1.065,0.132,,MS
+spider,fishfood,M2,219_fishfood_3,fishfood_3,219,B,0.157,1.114,0.137,,MS
+spider,fishfood,M2,219_fishfood_3,fishfood_3,219,C,0.153,1.064,0.131,,MS
+spider,oatmeal,M2,218_oatmeal_2,oatmeal_2,218,A,0.134,0.954,0.133,,MS
+spider,oatmeal,M2,218_oatmeal_2,oatmeal_2,218,B,0.156,0.979,0.132,,MS
+spider,oatmeal,M2,218_oatmeal_2,oatmeal_2,218,C,0.133,0.976,0.133,,MS
+spider,oatmeal,M2,217_oatmeal_19,oatmeal_19,217,A,0.146,0.989,0.141,,MS
+spider,oatmeal,M2,217_oatmeal_19,oatmeal_19,217,B,0.152,1.076,0.139,,MS
+spider,oatmeal,M2,217_oatmeal_19,oatmeal_19,217,C,0.159,1.068,0.135,,MS
+spider,start,M2,,216,216,A,0.331,2.417,0.131,,MS
+spider,start,M2,,216,216,B,0.339,2.366,0.132,,MS
+spider,start,M2,,216,216,C,0.342,2.423,0.137,,MS
+spider,start,M2,,215,215,A,0.185,1.330,0.135,keine Encapsulation?,MS
+spider,start,M2,,215,215,B,0.187,1.348,0.134,keine Encapsulation?,MS
+spider,start,M2,,215,215,C,0.183,1.346,0.129,keine Encapsulation?,MS
+spider,fishfood,M2,213_fishfood_8,fishfood_8,213,A,0.154,1.094,0.134,,MS
+spider,fishfood,M2,213_fishfood_8,fishfood_8,213,B,0.153,1.117,0.131,,MS
+spider,fishfood,M2,213_fishfood_8,fishfood_8,213,C,0.149,1.150,0.13,,MS
+spider,fishfood,M2,212_fishfood_15,fishfood_15,212,A,0.131,0.909,0.136,"Faden vmtl. nicht komplett in Spinne gewesen, Grenze festgelegt",MS
+spider,fishfood,M2,212_fishfood_15,fishfood_15,212,B,0.134,0.933,0.139,"Faden vmtl. nicht komplett in Spinne gewesen, Grenze festgelegt",MS
+spider,fishfood,M2,212_fishfood_15,fishfood_15,212,C,0.13,0.875,0.13,"Faden vmtl. nicht komplett in Spinne gewesen, Grenze festgelegt",MS
+spider,leaves,M2,211_leaves_15,leaves_15,211,A,0.264,1.877,0.133,,MS
+spider,leaves,M2,211_leaves_15,leaves_15,211,B,0.254,1.903,0.124,,MS
+spider,leaves,M2,211_leaves_15,leaves_15,211,C,0.255,1.811,0.127,,MS
+spider,leaves,M2,209_leaves_11,leaves_11,209,A,0.191,1.382,0.133,,MS
+spider,leaves,M2,209_leaves_11,leaves_11,209,B,0.195,1.378,0.13,,MS
+spider,leaves,M2,209_leaves_11,leaves_11,209,C,0.186,1.362,0.127,,MS
+spider,fishfood,M2,206_fishfood_10,fishfood_10,206,A,0.128,0.903,0.135,"nur z.T. in Spinne, ""rechte seite"" gemessen",MS
+spider,fishfood,M2,206_fishfood_10,fishfood_10,206,B,0.125,0.879,0.132,"nur z.T. in Spinne, ""rechte seite"" gemessen",MS
+spider,fishfood,M2,206_fishfood_10,fishfood_10,206,C,0.123,0.844,0.143,"nur z.T. in Spinne, ""rechte seite"" gemessen",MS
+spider,oatmeal,M2,204_oatmeal_5,oatmeal_5,204,A,0.224,1.465,0.137,,MS
+spider,oatmeal,M2,204_oatmeal_5,oatmeal_5,204,B,0.215,1.483,0.139,,MS
+spider,oatmeal,M2,204_oatmeal_5,oatmeal_5,204,C,0.233,1.487,0.15,,MS
+spider,start,M2,,203,203,A,0.184,1.127,0.129,,MS
+spider,start,M2,,203,203,B,0.173,1.159,0.136,,MS
+spider,start,M2,,203,203,C,0.169,1.151,0.137,,MS
+spider,start,M2,,202,202,A,0.237,1.366,0.143,nur z.T. in Spinne,MS
+spider,start,M2,,202,202,B,0.258,1.388,0.157,nur z.T. in Spinne,MS
+spider,start,M2,,202,202,C,0.252,1.322,0.151,nur z.T. in Spinne,MS
+spider,fishfood,M2,201_fishfood_13,fishfood_13,201,A,0.188,1.434,0.132,,MS
+spider,fishfood,M2,201_fishfood_13,fishfood_13,201,B,0.192,1.435,0.135,,MS
+spider,fishfood,M2,201_fishfood_13,fishfood_13,201,C,0.205,1.453,0.135,,MS
+spider,oatmeal,M2,195_oatmeal_14,oatmeal_14,195,A,0.162,0.980,0.146,"Faden vmtl. nicht komplett in Spinne gewesen, Grenze festgelegt",MS
+spider,oatmeal,M2,195_oatmeal_14,oatmeal_14,195,B,0.147,0.901,0.132,"Faden vmtl. nicht komplett in Spinne gewesen, Grenze festgelegt",MS
+spider,oatmeal,M2,195_oatmeal_14,oatmeal_14,195,C,0.148,0.939,0.144,"Faden vmtl. nicht komplett in Spinne gewesen, Grenze festgelegt",MS
+spider,leaves,M2,194_leaves_16,leaves_16,194,A,0.177,1.204,0.134,,MS
+spider,leaves,M2,194_leaves_16,leaves_16,194,B,0.172,1.202,0.125,,MS
+spider,leaves,M2,194_leaves_16,leaves_16,194,C,0.183,1.219,0.135,,MS
+spider,leaves,M2,193_leaves_12,leaves_12,193,A,0.232,1.665,0.129,,MS
+spider,leaves,M2,193_leaves_12,leaves_12,193,B,0.238,1.631,0.137,,MS
+spider,leaves,M2,193_leaves_12,leaves_12,193,C,0.224,1.645,0.137,,MS
+spider,leaves,M2,191_leaves_9,leaves_9,191,A,0.238,1.687,0.131,,MS
+spider,leaves,M2,191_leaves_9,leaves_9,191,B,0.227,1.682,0.134,,MS
+spider,leaves,M2,191_leaves_9,leaves_9,191,C,0.244,1.714,0.137,,MS
+spider,oatmeal,M2,190_oatmeal_10,oatmeal_10,190,A,0.173,1.199,0.125,"Faden vmtl. nicht komplett in Spinne gewesen, Grenze festgelegt",MS
+spider,oatmeal,M2,190_oatmeal_10,oatmeal_10,190,B,0.156,1.169,0.125,"Faden vmtl. nicht komplett in Spinne gewesen, Grenze festgelegt",MS
+spider,oatmeal,M2,190_oatmeal_10,oatmeal_10,190,C,0.152,1.178,0.13,"Faden vmtl. nicht komplett in Spinne gewesen, Grenze festgelegt",MS
+spider,oatmeal,M2,189_oatmeal_13,oatmeal_13,189,A,0.227,1.618,0.131,,MS
+spider,oatmeal,M2,189_oatmeal_13,oatmeal_13,189,B,0.232,1.627,0.136,,MS
+spider,oatmeal,M2,189_oatmeal_13,oatmeal_13,189,C,0.222,1.615,0.129,,MS
+spider,fishfood,M2,188_fishfood_20,fishfood_20,188,A,0.197,1.436,0.129,,MS
+spider,fishfood,M2,188_fishfood_20,fishfood_20,188,B,0.194,1.412,0.13,,MS
+spider,fishfood,M2,188_fishfood_20,fishfood_20,188,C,0.188,1.394,0.125,,MS
+spider,start,M2,,187,187,A,0.116,0.926,0.125,"faden nur z. T. in Spinne, rechte Seite gemessen ",MS
+spider,start,M2,,187,187,B,0.125,0.897,0.141,"faden nur z. T. in Spinne, rechte Seite gemessen ",MS
+spider,start,M2,,187,187,C,0.126,0.924,0.129,"faden nur z. T. in Spinne, rechte Seite gemessen ",MS
+spider,fishfood,M2,185_fishfood_17,fishfood_17,185,A,0.201,1.357,0.136,,MS
+spider,fishfood,M2,185_fishfood_17,fishfood_17,185,B,0.207,1.451,0.127,,MS
+spider,fishfood,M2,185_fishfood_17,fishfood_17,185,C,0.205,1.386,0.132,,MS
+spider,start,M2,,181,181,A,0.316,2.189,0.141,Encapsulation?,MS
+spider,start,M2,,181,181,B,0.298,2.143,0.137,Faden leicht gebogen,MS
+spider,start,M2,,181,181,C,0.272,2.153,0.129,Faden leicht gebogen,MS
+spider,fishfood,M2,180_fishfood_6,fishfood_6,180,A,0.181,1.159,0.136,,MS
+spider,fishfood,M2,180_fishfood_6,fishfood_6,180,B,0.183,1.155,0.127,,MS
+spider,fishfood,M2,180_fishfood_6,fishfood_6,180,C,0.178,1.170,0.136,"Raster verdeckt, länge nicht optimal vermessbar",MS
+spider,leaves,M2,178_leaves_17,leaves_17,178,A,0.157,1.001,0.131,"Faden vmtl. nicht komplett in Spinne gewesen, Grenze festgelegt",MS
+spider,leaves,M2,178_leaves_17,leaves_17,178,B,0.142,0.979,0.128,"Faden vmtl. nicht komplett in Spinne gewesen, Grenze festgelegt",MS
+spider,leaves,M2,178_leaves_17,leaves_17,178,C,0.16,1.007,0.136,"Faden vmtl. nicht komplett in Spinne gewesen, Grenze festgelegt",MS
+spider,leaves,M2,176_leaves_18,leaves_18,176,A,0.223,1.607,0.132,,MS
+spider,leaves,M2,176_leaves_18,leaves_18,176,B,0.233,1.627,0.128,,MS
+spider,leaves,M2,176_leaves_18,leaves_18,176,C,0.234,1.616,0.125,,MS
+spider,leaves,M2,172_leaves_19,leaves_19,172,A,0.147,0.997,0.128,,MS
+spider,leaves,M2,172_leaves_19,leaves_19,172,B,0.135,0.957,0.125,,MS
+spider,leaves,M2,172_leaves_19,leaves_19,172,C,0.149,0.946,0.136,,MS
+spider,leaves,M2,169_leaves_3,leaves_3,169,A,0.202,1.467,0.133,,MS
+spider,leaves,M2,169_leaves_3,leaves_3,169,B,0.207,1.500,0.141,,MS
+spider,leaves,M2,169_leaves_3,leaves_3,169,C,0.218,1.498,0.135,,MS
+spider,start,M2,,168,168,A,0.153,1.094,0.129,,MS
+spider,start,M2,,168,168,B,0.156,1.075,0.137,,MS
+spider,start,M2,,168,168,C,0.166,1.121,0.136,,MS
+spider,oatmeal,M2,167_oatmeal_6,oatmeal_6,167,A,0.134,0.947,0.132,,MS
+spider,oatmeal,M2,167_oatmeal_6,oatmeal_6,167,B,0.155,0.951,0.138,,MS
+spider,oatmeal,M2,167_oatmeal_6,oatmeal_6,167,C,0.139,0.930,0.133,,MS
+spider,start,M2,,165,165,A,0.174,1.281,0.145,,MS
+spider,start,M2,,165,165,B,0.175,1.272,0.137,,MS
+spider,start,M2,,165,165,C,0.195,1.312,0.14,,MS
+spider,start,M2,,164,164,A,0.268,1.884,0.139,,MS
+spider,start,M2,,164,164,B,0.27,1.863,0.136,,MS
+spider,start,M2,,164,164,C,0.253,1.847,0.141,,MS
+spider,start,M2,,163,163,A,0.204,1.403,0.135,"Faden vmtl. nicht komplett in Spinne gewesen, Grenze festgelegt",MS
+spider,start,M2,,163,163,B,0.234,1.498,0.132,"Faden vmtl. nicht komplett in Spinne gewesen, Grenze festgelegt",MS
+spider,start,M2,,163,163,C,0.201,1.380,0.131,"Faden vmtl. nicht komplett in Spinne gewesen, Grenze festgelegt",MS
+spider,fishfood,M2,162_fishfood_4,fishfood_4,162,A,0.147,0.963,0.134,"Faden vmtl. nicht komplett in Spinne gewesen, Grenze festgelegt",MS
+spider,fishfood,M2,162_fishfood_4,fishfood_4,162,B,0.139,0.957,0.135,"Faden vmtl. nicht komplett in Spinne gewesen, Grenze festgelegt",MS
+spider,fishfood,M2,162_fishfood_4,fishfood_4,162,C,0.141,0.911,0.14,"Faden vmtl. nicht komplett in Spinne gewesen, Grenze festgelegt",MS
+spider,fishfood,M2,161_fishfood_7,fishfood_7,161,A,0.231,1.393,0.144,,MS
+spider,fishfood,M2,161_fishfood_7,fishfood_7,161,B,0.252,1.448,0.139,,MS
+spider,fishfood,M2,161_fishfood_7,fishfood_7,161,C,0.237,1.446,0.143,,MS
+spider,oatmeal,M2,160_oatmeal_20,oatmeal_20,160,A,0.178,1.169,0.141,,MS
+spider,oatmeal,M2,160_oatmeal_20,oatmeal_20,160,B,0.176,1.130,0.152,,MS
+spider,oatmeal,M2,160_oatmeal_20,oatmeal_20,160,C,0.189,1.134,0.157,,MS
+spider,oatmeal,M2,159_oatmeal_4,oatmeal_4,159,A,0.231,1.301,0.147,,MS
+spider,oatmeal,M2,159_oatmeal_4,oatmeal_4,159,B,0.232,1.274,0.139,,MS
+spider,oatmeal,M2,159_oatmeal_4,oatmeal_4,159,C,0.223,1.282,0.143,Maßstab nicht optimal bestimmbar,MS
+spider,fishfood,M2,158_fishfood_9,fishfood_9,158,A,0.201,1.263,0.154,"Encapsulation area schwer zu definieren-> Exoskelett?, länge des Fadens nicht eindeutig, 1mm nicht exakt erkennbar aber gut ""annehmbar""",MS
+spider,fishfood,M2,158_fishfood_9,fishfood_9,158,B,0.214,1.276,0.143,"Fadenlänge nicht eindeutig da Exoskelett, Fläche auch",MS
+spider,fishfood,M2,158_fishfood_9,fishfood_9,158,C,0.188,1.247,0.148,"Fadenlänge nicht eindeutig da Exoskelett, Fläche auch",MS
+spider,oatmeal,M2,157_oatmeal_17,oatmeal_17,157,A,0.229,1.634,0.141,,MS
+spider,oatmeal,M2,157_oatmeal_17,oatmeal_17,157,B,0.223,1.622,0.133,,MS
+spider,oatmeal,M2,157_oatmeal_17,oatmeal_17,157,C,0.228,1.631,0.132,,MS
+spider,oatmeal,M2,154_oatmeal_12,oatmeal_12,154,A,0.237,1.592,0.134,,MS
+spider,oatmeal,M2,154_oatmeal_12,oatmeal_12,154,B,0.24,1.674,0.132,,MS
+spider,oatmeal,M2,154_oatmeal_12,oatmeal_12,154,C,0.244,1.611,0.136,,MS
+spider,leaves,M2,153_leaves_1,leaves_1,153,A,0.212,1.505,0.139,,MS
+spider,leaves,M2,153_leaves_1,leaves_1,153,B,0.199,1.522,0.13,,MS
+spider,leaves,M2,153_leaves_1,leaves_1,153,C,0.205,1.485,0.133,,MS
+spider,leaves,M2,152_leaves_5,leaves_5,152,A,0.168,1.125,0.136,"Faden nicht komplett in Spinne, Grenze gesetzt",MS
+spider,leaves,M2,152_leaves_5,leaves_5,152,B,0.169,1.127,0.127,"Faden nicht komplett in Spinne, Grenze gesetzt",MS
+spider,leaves,M2,152_leaves_5,leaves_5,152,C,0.179,1.189,0.137,"Faden nicht komplett in Spinne, Grenze gesetzt",MS
+spider,leaves,M2,150_leaves_4,leaves_4,150,A,0.180,1.146,0.136,,TO
+spider,leaves,M2,150_leaves_4,leaves_4,150,B,0.178,1.151,0.140,,TO
+spider,leaves,M2,150_leaves_4,leaves_4,150,C,0.179,1.151,0.138,,TO
+spider,leaves,M2,149_leaves_7,leaves_7,149,A,0.219,1.334,0.136,,TO
+spider,leaves,M2,149_leaves_7,leaves_7,149,B,0.228,1.357,0.139,,TO
+spider,leaves,M2,149_leaves_7,leaves_7,149,C,0.233,1.359,0.137,,TO
+spider,fishfood,M2,147_fishfood_2,fishfood_2,147,A,0.187,1.233,0.140,,TO
+spider,fishfood,M2,147_fishfood_2,fishfood_2,147,B,0.177,1.197,0.137,,TO
+spider,fishfood,M2,147_fishfood_2,fishfood_2,147,C,0.191,1.243,0.142,,TO
+spider,leaves,M2,142_leaves_8,leaves_8,142,A,0.202,1.302,0.137,,TO
+spider,leaves,M2,142_leaves_8,leaves_8,142,B,0.224,1.330,0.137,,TO
+spider,leaves,M2,142_leaves_8,leaves_8,142,C,0.205,1.334,0.137,,TO
+spider,fishfood,M2,140_fishfood_16,fishfood_16,140,A,0.149,1.040,0.141,,TO
+spider,fishfood,M2,140_fishfood_16,fishfood_16,140,B,0.187,1.187,0.143,,TO
+spider,fishfood,M2,140_fishfood_16,fishfood_16,140,C,0.186,1.138,0.143,,TO
+spider,fishfood,M2,139_fishfood_11,fishfood_11,139,A,0.237,1.564,0.138,,TO
+spider,fishfood,M2,139_fishfood_11,fishfood_11,139,B,0.248,1.566,0.140,,TO
+spider,fishfood,M2,139_fishfood_11,fishfood_11,139,C,0.232,1.577,0.134,,TO
+spider,start,M2,,138,138,A,0.253,1.711,0.131,,TO
+spider,start,M2,,138,138,B,0.235,1.742,0.117,,TO
+spider,start,M2,,138,138,C,0.255,1.700,0.132,,TO
+spider,fishfood,M2,137_fishfood_18,fishfood_18,137,A,0.233,1.518,0.130,,TO
+spider,fishfood,M2,137_fishfood_18,fishfood_18,137,B,0.252,1.532,0.126,,TO
+spider,fishfood,M2,137_fishfood_18,fishfood_18,137,C,0.227,1.488,0.134,,TO
+spider,start,M2,,133,133,A,0.346,1.839,0.153,,TO
+spider,start,M2,,133,133,B,0.338,1.845,0.144,,TO
+spider,start,M2,,133,133,C,0.316,1.792,0.141,,TO
+spider,oatmeal,M2,132_oatmeal_8,oatmeal_8,132,A,0.270,1.773,0.138,,TO
+spider,oatmeal,M2,132_oatmeal_8,oatmeal_8,132,B,0.259,1.773,0.139,,TO
+spider,oatmeal,M2,132_oatmeal_8,oatmeal_8,132,C,0.235,1.653,0.135,,TO
+spider,start,M1,,111,111,A,0.232,1.296,0.135,,TO
+spider,start,M1,,111,111,B,0.220,1.279,0.135,,TO
+spider,start,M1,,111,111,C,0.225,1.285,0.136,,TO
+spider,start,M1,,106,106,A,0.264,1.752,0.133,,TO
+spider,start,M1,,106,106,B,0.277,1.727,0.135,,TO
+spider,start,M1,,106,106,C,0.261,1.771,0.137,,TO
+spider,start,M1,,86,86,A,0.241,1.570,0.138,,TO
+spider,start,M1,,86,86,B,0.276,1.634,0.139,,TO
+spider,start,M1,,86,86,C,0.239,1.575,0.139,,TO
+spider,start,M1,,81,81,A,0.244,1.626,0.139,,TO
+spider,start,M1,,81,81,B,0.256,1.644,0.140,,TO
+spider,start,M1,,81,81,C,0.265,1.653,0.140,,TO
+spider,start,M1,,79,79,A,0.220,1.337,0.136,,TO
+spider,start,M1,,79,79,B,0.242,1.532,0.144,hier maßstab schlecht erkennbar,TO
+spider,start,M1,,79,79,C,0.204,1.401,0.135,,TO
+spider,start,M1,,78,78,A,0.198,1.148,0.136,,TO
+spider,start,M1,,78,78,B,0.172,0.980,0.141,,TO
+spider,start,M1,,78,78,C,0.168,1.023,0.138,,TO
+spider,start,M1,,74,74,A,0.196,1.252,0.144,,TO
+spider,start,M1,,74,74,B,0.197,1.215,0.138,,TO
+spider,start,M1,,74,74,C,0.187,1.203,0.141,,TO
+spider,start,M1,,70,70,A,0.314,1.617,0.140,,TO
+spider,start,M1,,70,70,B,0.264,1.532,0.142,,TO
+spider,start,M1,,70,70,C,0.273,1.575,0.136,,TO
+spider,start,M1,,63,63,A,0.262,1.623,0.137,,TO
+spider,start,M1,,63,63,B,0.268,1.553,0.151,,TO
+spider,start,M1,,63,63,C,0.301,1.648,0.157,,TO
+spider,start,M1,,59,59,A,0.224,1.481,0.141,,TO
+spider,start,M1,,59,59,B,0.250,1.610,0.142,,TO
+spider,start,M1,,59,59,C,0.240,1.569,0.137,,TO
+spider,start,M1,,49,49,A,0.145,0.940,0.140,,TO
+spider,start,M1,,49,49,B,0.140,0.953,0.142,,TO
+spider,start,M1,,49,49,C,0.156,1.021,0.142,,TO
+spider,start,M1,,48,48,A,0.220,1.333,0.135,,TO
+spider,start,M1,,48,48,B,0.213,1.310,0.139,,TO
+spider,start,M1,,48,48,C,0.235,1.355,0.137,,TO
+spider,start,M1,,39,39,A,0.328,1.987,0.130,,TO
+spider,start,M1,,39,39,B,0.309,1.979,0.137,,TO
+spider,start,M1,,39,39,C,0.314,2.008,0.138,,TO
+spider,start,M1,,38,38,A,0.185,1.034,0.142,,TO
+spider,start,M1,,38,38,B,0.194,1.085,0.139,,TO
+spider,start,M1,,38,38,C,0.187,1.037,0.139,,TO
+spider,start,M1,,21,21,A,0.211,1.339,0.138,,TO
+spider,start,M1,,21,21,B,0.204,1.339,0.130,"Raster nicht erkennbar, Länge von 21 A als Maßstab übernommen",TO
+spider,start,M1,,21,21,C,0.207,1.320,0.136,,TO
+spider,oatmeal,M1,,oatmeal_9,36,A,0.229,1.813,0.123,,MS
+spider,oatmeal,M1,,oatmeal_9,36,B,0.241,1.794,0.131,,MS
+spider,oatmeal,M1,,oatmeal_9,36,C,0.235,1.835,0.124,,MS
+spider,oatmeal,M1,,oatmeal_8,72,A,0.127,0.924,0.131,Grenze nicht deutlich,MS
+spider,oatmeal,M1,,oatmeal_8,72,B,0.125,1.048,0.131,Grenze nicht deutlich,MS
+spider,oatmeal,M1,,oatmeal_8,72,C,0.118,0.976,0.133,Grenze nicht deutlich,MS
+spider,oatmeal,M1,,oatmeal_4,83,A,0.186,1.395,0.124,,MS
+spider,oatmeal,M1,,oatmeal_4,83,B,0.183,1.381,0.126,,MS
+spider,oatmeal,M1,,oatmeal_4,83,C,0.201,1.404,0.125,,MS
+spider,oatmeal,M1,,oatmeal_2,85,A,0.127,0.984,0.129,,MS
+spider,oatmeal,M1,,oatmeal_2,85,B,0.144,1.053,0.131,,MS
+spider,oatmeal,M1,,oatmeal_2,85,C,0.137,1.060,0.127,,MS
+spider,oatmeal,M1,,oatmeal_18,96,A,0.161,0.999,0.145,Oat 10 in pufa?,MS
+spider,oatmeal,M1,,oatmeal_18,96,B,0.145,0.923,0.132,Oat 10,MS
+spider,oatmeal,M1,,oatmeal_18,96,C,0.15,1.007,0.132,Oat 10,MS
+spider,oatmeal,M1,,oatmeal_16,68,A,0.385,2.076,0.131,ist das Encapsulation?,MS
+spider,oatmeal,M1,,oatmeal_16,68,B,0.362,2.042,0.141,ist das Encapsulation?,MS
+spider,oatmeal,M1,,oatmeal_16,68,C,0.327,2.065,0.140,ist das Encapsulation?,MS
+spider,oatmeal,M1,,oatmeal_12,73,A,0.153,1.236,0.13,Grenze nicht deutlich,MS
+spider,oatmeal,M1,,oatmeal_12,73,B,0.176,1.197,0.132,Grenze nicht deutlich,MS
+spider,oatmeal,M1,,oatmeal_12,73,C,0.179,1.183,0.13,Grenze nicht deutlich,MS
+spider,oatmeal,M1,,oatmeal_11,57,A,0.163,1.129,0.136,,MS
+spider,oatmeal,M1,,oatmeal_11,57,B,0.147,1.173,0.129,,MS
+spider,oatmeal,M1,,oatmeal_11,57,C,0.167,1.152,0.125,,MS
+spider,oatmeal,M1,,oatmeal_1,126,A,0.269,1.718,0.144,Grenze nicht deutlich,MS
+spider,oatmeal,M1,,oatmeal_1,126,B,0.253,1.736,0.144,Grenze nicht deutlich,MS
+spider,oatmeal,M1,,oatmeal_1,126,C,0.239,1.701,0.138,Grenze nicht deutlich,MS
+spider,fishfood,M1,,fishfood_6,23,A,0.114,0.790,0.134,,MS
+spider,fishfood,M1,,fishfood_6,23,B,0.097,0.759,0.128,,MS
+spider,fishfood,M1,,fishfood_6,23,C,0.102,0.761,0.129,,MS
+spider,fishfood,M1,,fishfood_5,25,A,0.225,1.754,0.125,,MS
+spider,fishfood,M1,,fishfood_5,25,B,0.229,1.831,0.125,,MS
+spider,fishfood,M1,,fishfood_5,25,C,0.223,1.788,0.128,,MS
+spider,fishfood,M1,,fishfood_19,52,A,0.218,1.579,0.128,,MS
+spider,fishfood,M1,,fishfood_19,52,B,0.216,1.562,0.125,,MS
+spider,fishfood,M1,,fishfood_19,52,C,0.216,1.576,0.125,,MS
+spider,fishfood,M1,,fishfood_18,43,A,0.186,1.233,0.118,Schwer erkennbar,MS
+spider,fishfood,M1,,fishfood_18,43,B,0.207,1.280,0.137,Schwer erkennbar,MS
+spider,fishfood,M1,,fishfood_18,43,C,0.2,1.315,0.139,Schwer erkennbar,MS
+spider,fishfood,M1,,fishfood_17,69,A,0.142,1.103,0.119,,MS
+spider,fishfood,M1,,fishfood_17,69,B,0.188,1.158,0.134,,MS
+spider,fishfood,M1,,fishfood_17,69,C,0.151,1.188,0.123,,MS
+spider,fishfood,M1,,fishfood_15,45,A,0.192,1.415,0.121,,MS
+spider,fishfood,M1,,fishfood_15,45,B,0.189,1.409,0.122,,MS
+spider,fishfood,M1,,fishfood_15,45,C,0.183,1.321,0.124,,MS
+spider,fishfood,M1,,fishfood_10,107,A,0.201,1.463,0.129,,MS
+spider,fishfood,M1,,fishfood_10,107,B,0.195,1.479,0.124,,MS
+spider,fishfood,M1,,fishfood_10,107,C,0.199,1.466,0.13,,MS
+spider,algae,M1,,algae_2,75,A,0.271,2.057,0.122,,MS
+spider,algae,M1,,algae_2,75,B,0.288,2.016,0.124,,MS
+spider,algae,M1,,algae_2,75,C,0.274,2.057,0.119,,MS
+spider,algae,M1,,algae_19,124,A,0.165,1.101,0.143,,MS
+spider,algae,M1,,algae_19,124,B,0.158,1.050,0.137,,MS
+spider,algae,M1,,algae_19,124,C,0.149,0.984,0.138,,MS
+spider,algae,M1,,algae_17,100,A,0.192,1.404,0.132,,MS
+spider,algae,M1,,algae_17,100,B,0.192,1.377,0.133,,MS
+spider,algae,M1,,algae_17,100,C,0.184,1.339,0.126,,MS
+spider,algae,M1,,algae_16,37,A,0.181,1.325,0.137,,MS
+spider,algae,M1,,algae_16,37,B,0.167,1.240,0.125,,MS
+spider,algae,M1,,algae_16,37,C,0.17,1.289,0.131,,MS
+spider,algae,M1,,algae_13,103,A,0.224,1.501,0.138,,MS
+spider,algae,M1,,algae_13,103,B,0.209,1.422,0.136,,MS
+spider,algae,M1,,algae_13,103,C,0.222,1.473,0.129,-,MS
+spider,algae,M1,,algae_12,97,A,0.22,1.462,0.144,,MS
+spider,algae,M1,,algae_12,97,B,0.239,1.532,0.142,,MS
+spider,algae,M1,,algae_12,97,C,0.233,1.511,0.141,,MS
+spider,algae,M1,,algae_11,114,A,0.252,1.494,0.146,,MS
+spider,algae,M1,,algae_11,114,B,0.227,1.517,0.129,,MS
+spider,algae,M1,,algae_11,114,C,0.245,1.521,0.138,,MS
+spider,algae,M1,,algae_10,34,A,0.226,1.555,0.141,,MS
+spider,algae,M1,,algae_10,34,B,0.229,1.609,0.137,,MS
+spider,algae,M1,,algae_10,34,C,0.223,1.627,0.13,,MS
+spider,Probe Spinne Filament_A,,,,,,0.659,2.236,0.28,,MS
+spider,Probe Spinne Filament_B,,,,,,0.675,2.351,0.275,,MS
+spider,Probe Spinne Filament_C,,,,,,0.689,2.324,0.289,,MS
+spider,Probespinne_1,,,,,,0.567,2.161,0.253,,MS
+spider,Probespinne_2,,,,,,0.586,2.128,0.264,,MS
+spider,Probespinne_3,,,,,,0.652,2.237,0.279,,MS
+spider,test,,,,,,0.662,2.256,0.273,,MS
