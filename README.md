@@ -27,7 +27,7 @@ Written by Katharina Ohler, revised by Verena C. Schreiner and Ralf B. Schäfer
   1.4 M2_scree.res.rds:  Check Stress1 value for experiment 2  
   1.5 microcosm_pufa.csv: PUFA data of samples  
 
- 2. response_spiders: All data of response of spiders
+ 2. response_spiders: All data of response of spiders  
   2.1 encapsulation_assay_form_sheet_2.csv: Data for immune response  
   2.2 encapsulation_assay_measurements_6.csv: Data for immune response  
   2.3 fitness_spiders_5.csv: Data for body condition  
